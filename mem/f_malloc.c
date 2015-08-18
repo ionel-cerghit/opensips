@@ -240,6 +240,7 @@ void fm_split_frag(struct fm_block* qm, struct fm_frag* frag,
 
 /* init malloc and return a fm_block*/
 struct fm_block* fm_malloc_init(char* address, unsigned long size)
+
 {
 	char* start;
 	char* end;
@@ -271,7 +272,6 @@ struct fm_block* fm_malloc_init(char* address, unsigned long size)
 	qm=(struct fm_block*)start;
 	memset(qm, 0, sizeof(struct fm_block));
 	qm->size=size;
-
 	#if defined(DBG_F_MALLOC) || defined(STATISTICS)
 
 	qm->used=size-init_overhead;

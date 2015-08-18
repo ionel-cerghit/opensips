@@ -114,6 +114,9 @@ struct qm_block{
 
 	struct qm_frag_lnk free_hash[QM_HASH_SIZE];
 	/*struct qm_frag_end free_lst_end;*/
+#ifdef MODULE_STATISTICS
+	struct module_info *modules;
+#endif
 };
 
 
