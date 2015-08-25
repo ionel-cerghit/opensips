@@ -82,7 +82,7 @@ modparam("mi_xmlrpc_ng", "mi_xmlrpc_ng_root", "opensips_mi_xmlrpc")
 	<emphasis>The default value is 2.</emphasis>
 	</para>
 	<example>
-	<title>Set <varname>mi_xmlrpc_ng_root</varname> parameter</title>
+	<title>Set <varname>mi_xmlrpc_ng_format_version</varname> parameter</title>
 	<programlisting format="linespecific">
 ...
 modparam("mi_xmlrpc_ng", "mi_xmlrpc_ng_format_version", 1)
