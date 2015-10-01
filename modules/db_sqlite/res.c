@@ -16,7 +16,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History
  * -------
@@ -187,6 +187,7 @@ int db_sqlite_get_columns(const db_con_t* _h, db_res_t* _r)
 	int autoincrement;
 	const char *decltype;
 	const char* name;
+	char stable[256];
 
 	if ((!_h) || (!_r)) {
 		LM_ERR("invalid parameter\n");
@@ -214,21 +215,31 @@ int db_sqlite_get_columns(const db_con_t* _h, db_res_t* _r)
 		RES_NAMES(_r)[col]->s = *((char**)&name);
 		RES_NAMES(_r)[col]->len = strlen(RES_NAMES(_r)[col]->s);
 
-		/* check if column is autoincrement */
-		if (sqlite3_table_column_metadata(
-			CON_CONNECTION(_h),
-			NULL, /* db name*/
-			CON_TABLE(_h)->s, /* table name */
-			name, /* column name */
-			NULL, NULL, NULL, NULL,
-			&autoincrement) != 0) {
-			LM_ERR("failed to fetch column metadata\n");
-			return -1;
-		}
+		/* check if column is autoincrement only for normal queries;
+		 * for raw queries we can't know the table name */
+		if (!CON_RAW_QUERY(_h)) {
+			/* sanity check */
+			if (CON_TABLE(_h)->len > 255) {
+				LM_ERR("table name too big [%d]\n", CON_TABLE(_h)->len);
+				return -1;
+			}
+
+			/* fix possible non '\0' terminated table name */
+			memcpy(stable, CON_TABLE(_h)->s, CON_TABLE(_h)->len);
+			stable[CON_TABLE(_h)->len] = '\0';
+
+			if (sqlite3_table_column_metadata(
+				CON_CONNECTION(_h), NULL, /* db name*/ stable, /* table name */
+				name, /* column name */ NULL, NULL, NULL, NULL,
+				&autoincrement) != 0) {
+					LM_ERR("failed to fetch metadata for column [%s]\n", name);
+					return -1;
+			}
+	}
 
 		/* since DB_BITMAP not used in SQLITE we will use it
 		 * here to know if value is PRIMARY KEY AUTOINCREMENT */
-		if (autoincrement) {
+		if (!CON_RAW_QUERY(_h) && autoincrement) {
 			RES_TYPES(_r)[col] = DB_BITMAP;
 			continue;
 		}

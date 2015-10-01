@@ -17,7 +17,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301
  * USA
  *
  * History:
@@ -162,7 +162,7 @@ void handleContactCallbacks(ucontact_t *contactInfo, int type, void *param)
 	/* We need to maintain our own copies of the AOR and contact address to
 	 * prevent the corruption of our internal data structures.
 	 *
-	 * If we do not maintain our own copies, then the AOR and contact adress
+	 * If we do not maintain our own copies, then the AOR and contact address
 	 * pointed to could be removed and reallocated to another thread before
 	 * we get a chance to consume our interprocess buffer.  */
 	currentBufferElement->stringName =  p;

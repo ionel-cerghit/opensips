@@ -16,7 +16,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History
  * -------
@@ -75,8 +75,7 @@ int db_sqlite_convert_row(const db_con_t* _h, db_res_t* _res, db_row_t* _r)
 
 				break;
 			case DB_INT:
-
-				VAL_INT(_v) =sqlite3_column_int(CON_SQLITE_PS(_h), col);
+				VAL_BIGINT(_v) =sqlite3_column_int64(CON_SQLITE_PS(_h), col);
 				VAL_TYPE(_v) = DB_INT;
 
 				break;

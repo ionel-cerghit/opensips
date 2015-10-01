@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * ---------
@@ -1095,7 +1095,7 @@ int mem_timer_udomain(udomain_t* _d)
 		LM_DBG("usrloc timer attempting to flush rows to DB\n");
 		/* flush everything to DB
 		 * so that next-time timer fires
-		 * we are sure that DB updates will be succesful */
+		 * we are sure that DB updates will be successful */
 		if (ql_flush_rows(&ul_dbf,ul_dbh,_d->ins_list) < 0)
 			LM_ERR("failed to flush rows to DB\n");
 	}
@@ -1190,7 +1190,7 @@ int insert_urecord(udomain_t* _d, str* _aor, struct urecord** _r,
 
 		(*_r)->label = CID_NEXT_RLABEL(_d, sl);
 
-		if (!is_replicated && replication_dests)
+		if (!is_replicated && ul_replicate_cluster)
 			replicate_urecord_insert(*_r);
 	} else {
 		get_static_urecord( _d, _aor, _r);
@@ -1259,7 +1259,7 @@ int delete_urecord(udomain_t* _d, str* _aor, struct urecord* _r,
 		}
 	}
 
-	if (!is_replicated && replication_dests)
+	if (!is_replicated && ul_replicate_cluster)
 		replicate_urecord_delete(_r);
 
 	c = _r->contacts;

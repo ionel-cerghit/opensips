@@ -17,7 +17,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * ---------
@@ -538,6 +538,7 @@ struct mi_root* mi_usrloc_add(struct mi_root *cmd, void *param)
 
 	if (c) {
 		/* update contact record */
+		ci.callid = &mi_ul_cid;
 		ci.cseq = c->cseq;
 		if (update_ucontact( r, c, &ci, 0) < 0)
 			goto release_error;

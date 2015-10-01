@@ -17,7 +17,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  */
 
 #ifndef version_h
@@ -159,6 +159,11 @@
 #define USE_SYSV_SEM_STR ""
 #endif
 
+#ifdef DBG_LOCK
+#define DBG_LOCK_STR ", DBG_LOCK"
+#else
+#define DBG_LOCK_STR ""
+#endif
 
 #ifdef NOSMP
 #define NOSMP_STR "-NOSMP"
@@ -173,7 +178,7 @@
 	SHM_MMAP_STR PKG_MALLOC_STR VQ_MALLOC_STR F_MALLOC_STR \
 	HP_MALLOC_STR USE_SHM_MEM_STR DBG_QM_MALLOC_STR DBG_F_MALLOC_STR \
 	DEBUG_DMALLOC_STR QM_JOIN_FREE_STR FAST_LOCK_STR NOSMP_STR \
-	USE_PTHREAD_MUTEX_STR USE_POSIX_SEM_STR USE_SYSV_SEM_STR
+	USE_PTHREAD_MUTEX_STR USE_POSIX_SEM_STR USE_SYSV_SEM_STR DBG_LOCK_STR
 
 
 #endif

@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * -------
@@ -61,7 +61,8 @@
 struct packet_cb_list {
 	str module;							/* registered module */
 	void (*cbf)(int packet_type,		/* module callback */
-				struct receive_info *ri);
+				struct receive_info *ri, void *att);
+        void *att;
 
 	struct packet_cb_list *next;
 };
@@ -83,7 +84,7 @@ void call_callbacks(char* buffer, struct receive_info *rcv);
  * registers a callback function to be triggered on a received
  * binary packet marked with the @mod_name module name
  */
-int bin_register_cb(char *mod_name, void (*)(int packet_type, struct receive_info *ri));
+int bin_register_cb(char *mod_name, void (*)(int packet_type, struct receive_info *ri, void * atr), void *att);
 
 
 /**

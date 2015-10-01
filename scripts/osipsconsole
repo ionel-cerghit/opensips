@@ -18,7 +18,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with this program; if not, write to the Free Software
-# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
 #
 # History:
 # -------
@@ -5569,7 +5569,7 @@ sub mysql_opensips_create() {
 		}
 	}
 
-	print "Core OpenSIPS tables succesfully created.\n";
+	print "Core OpenSIPS tables successfully created.\n";
 
 	if ( -e $DB_SCHEMA."/extensions-create.sql" ) {
 		print "Creating custom extensions tables\n";
@@ -5706,7 +5706,7 @@ sub pgsql_opensips_create() {	# pars: <database name>
 		}
 	}
 
-	print "Core OpenSIPS tables succesfully created.\n";
+	print "Core OpenSIPS tables successfully created.\n";
 
 	print "Install presence related tables? (y/n): ";
 	if ( ( $ans = <STDIN> ) =~ /[(^y)(^Y)]$/ ) {
@@ -5897,7 +5897,7 @@ sub pgsql_presence_create(){ # pars: <database name>
 		}
 	}
 
-	print "Presence tables succesfully created.\n";
+	print "Presence tables successfully created.\n";
 } 
 
 sub dbtext_presence_create () { # pars: <database name>
@@ -6038,7 +6038,7 @@ sub pgsql_extra_create() { # pars: <database name>
 			&pgsql_query($db, $query[$i]);
 		}
 	}
-	print "Extra tables succesfully created.\n";
+	print "Extra tables successfully created.\n";
 
 
 	foreach $TABLE ( @EXTRA_TABLES ) {

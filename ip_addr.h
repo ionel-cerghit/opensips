@@ -17,7 +17,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * --------
@@ -50,7 +50,8 @@
 #define BUFFER_INCREMENT	2048
 
 enum sip_protos { PROTO_NONE = 0, PROTO_FIRST = 1, PROTO_UDP = 1, \
-	PROTO_TCP, PROTO_TLS, PROTO_SCTP, PROTO_WS, PROTO_BIN, PROTO_OTHER };
+	PROTO_TCP, PROTO_TLS, PROTO_SCTP, PROTO_WS, PROTO_WSS, \
+	PROTO_BIN, PROTO_OTHER };
 #define PROTO_LAST PROTO_OTHER
 
 struct ip_addr{

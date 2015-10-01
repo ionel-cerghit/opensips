@@ -17,7 +17,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * ---------
@@ -447,7 +447,7 @@ void release_urecord(urecord_t* _r, char is_replicated)
 		free_urecord(_r);
 	} else if (_r->contacts == 0) {
 
-		if (!is_replicated && replication_dests)
+		if (!is_replicated && ul_replicate_cluster)
 			replicate_urecord_delete(_r);
 
 		mem_delete_urecord(_r->slot->d, _r);
@@ -474,7 +474,7 @@ int insert_ucontact(urecord_t* _r, str* _contact, ucontact_info_t* _ci,
 		return -1;
 	}
 
-	if (!is_replicated && replication_dests && db_mode != DB_ONLY)
+	if (!is_replicated && ul_replicate_cluster && db_mode != DB_ONLY)
 		replicate_ucontact_insert(_r, _contact, _ci);
 
 	if (exists_ulcb_type(UL_CONTACT_INSERT)) {
@@ -498,7 +498,7 @@ int insert_ucontact(urecord_t* _r, str* _contact, ucontact_info_t* _ci,
  */
 int delete_ucontact(urecord_t* _r, struct ucontact* _c, char is_replicated)
 {
-	if (!is_replicated && replication_dests && db_mode != DB_ONLY)
+	if (!is_replicated && ul_replicate_cluster && db_mode != DB_ONLY)
 		replicate_ucontact_delete(_r, _c);
 
 	if (exists_ulcb_type(UL_CONTACT_DELETE)) {

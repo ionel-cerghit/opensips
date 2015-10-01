@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * --------
@@ -42,7 +42,7 @@
 #define MEM_WARMING_DEFAULT_PATTERN_FILE CFG_DIR "mem_warming_pattern"
 #define MEM_WARMING_DEFAULT_PERCENTAGE 75
 
-#define TLS_PKEY_FILE CFG_DIR "tls/cert.pem"
+#define TLS_PKEY_FILE CFG_DIR "tls/ckey.pem"
 #define TLS_CERT_FILE CFG_DIR "tls/cert.pem"
 #define TLS_CA_FILE 0 		/*!< no CA list file by default */
 #define TLS_CA_DIRECTORY      "/etc/pki/CA/"
@@ -115,8 +115,11 @@
 #define SRV_TLS_PREFIX "_sips._tcp."
 #define SRV_TLS_PREFIX_LEN (sizeof(SRV_TLS_PREFIX) - 1)
 
-#define SRV_WS_PREFIX "_sip._ws."
+#define SRV_WS_PREFIX "_ws._tcp."
 #define SRV_WS_PREFIX_LEN (sizeof(SRV_WS_PREFIX) - 1)
+
+#define SRV_WSS_PREFIX "_wss._tcp."
+#define SRV_WSS_PREFIX_LEN (sizeof(SRV_WSS_PREFIX) - 1)
 
 #define SRV_MAX_PREFIX_LEN SRV_TLS_PREFIX_LEN
 

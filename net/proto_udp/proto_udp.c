@@ -16,7 +16,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  *
  * History:
@@ -213,7 +213,7 @@ again:
 	if (n==-1){
 		LM_ERR("sendto(sock,%p,%d,0,%p,%d): %s(%d)\n", buf,len,to,tolen,
 				strerror(errno),errno);
-		if (errno==EINTR) goto again;
+		if (errno==EINTR || errno==EAGAIN) goto again;
 		if (errno==EINVAL) {
 			LM_CRIT("invalid sendtoparameters\n"
 			"one possible reason is the server is bound to localhost and\n"

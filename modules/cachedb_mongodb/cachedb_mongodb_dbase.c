@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  *
  * history:
@@ -1614,7 +1614,7 @@ int mongo_db_query_trans(cachedb_con *con,const str *table,const db_key_t* _k, c
 		i++;
 	}
 
-	LM_DBG("Succesfully ran query\n");
+	LM_DBG("Successfully ran query\n");
 	bson_destroy(&query);
 	bson_destroy(&fields);
 	stop_expire_timer(start,mongo_exec_threshold,

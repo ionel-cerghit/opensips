@@ -16,7 +16,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * --------
@@ -658,7 +658,7 @@ int acc_db_request( struct sip_msg *rq, struct sip_msg *rpl,
 int acc_db_cdrs(struct dlg_cell *dlg, struct sip_msg *msg)
 {
 	int total, nr_vals, i, ret, res = -1, nr_bye_vals = 0, j;
-	int remaining_bye_vals;
+	int remaining_bye_vals = 0;
 	time_t created, start_time;
 	str core_s, leg_s, extra_s, table;
 	short nr_legs;

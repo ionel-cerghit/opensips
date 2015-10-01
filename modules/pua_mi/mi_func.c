@@ -17,7 +17,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  */
 
 #include <stdio.h>
@@ -204,7 +204,7 @@ struct mi_root* mi_pua_publish(struct mi_root* cmd, void* param)
 	publ.event= get_event_flag(&event);
 	if(publ.event< 0)
 	{
-		LM_ERR("unkown event\n");
+		LM_ERR("unknown event\n");
 		return init_mi_tree(400, "Unknown event", 13);
 	}
 	if(content_type.len!= 1)
@@ -435,7 +435,7 @@ struct mi_root* mi_pua_subscribe(struct mi_root* cmd, void* param)
 	subs.event= get_event_flag(&event);
 	if(subs.event< 0)
 	{
-		LM_ERR("unkown event\n");
+		LM_ERR("unknown event\n");
 		return init_mi_tree(400, "Unknown event", 13);
 	}
 

@@ -16,7 +16,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * --------
@@ -1596,7 +1596,12 @@ int w_t_reply_body(struct sip_msg* msg, str* code, str *text,
 
 	t=get_t();
 	if ( t==0 || t==T_UNDEFINED ) {
-		r = t_newtran( msg, 0/*no full uas cloning*/ );
+		/* t_reply_with_body() is a bit of a weird function as it 
+		 * receiving as parameter the actual msg, but the transaction
+		 * (and uses the saved msg from transaction).
+		 * So we need to take care and save everything into transaction,
+		 * otherwise we will loose the rpl lumps. --bogdan */
+		r = t_newtran( msg, 1/*full uas cloning*/ );
 		if (r==0) {
 			/* retransmission -> break the script */
 			return 0;

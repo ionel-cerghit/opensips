@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * --------
@@ -149,7 +149,7 @@ int parse_uri_headers(str headers, str h_name[], str h_val[], int h_size)
 }
 
 
-/* buf= pointer to begining of uri (sip:x@foo.bar:5060;a=b?h=i)
+/* buf= pointer to beginning of uri (sip:x@foo.bar:5060;a=b?h=i)
  * len= len of uri
  * returns: fills uri & returns <0 on error or 0 if ok
  */
@@ -1471,7 +1471,7 @@ int compare_uris(str *raw_uri_a,struct sip_uri* parsed_uri_a,
                 strncasecmp(first.u_name[i].s,second.u_name[j].s,
 							first.u_name[i].len) == 0))
 				{
-                    /* point of no return - matching unkown parameter values */
+                    /* point of no return - matching unknown parameter values */
 					if (first.u_val[i].len != second.u_val[j].len)
 					{
 						LM_DBG("Different URI param value for param %.*s\n",

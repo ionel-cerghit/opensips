@@ -13,7 +13,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  * History:
  * ---------
@@ -24,6 +24,8 @@
 #ifndef _MI_JSON_HTTP_FNC_H
 #define _MI_JSON_HTTP_FNC_H
 
+#define MI_JSON_ASYNC_FAILED   ((void*)-2)
+#define MI_JSON_ASYNC_EXPIRED  ((void*)-3)
 
 typedef struct mi_json_html_page_data_ {
   str page;
@@ -32,7 +34,6 @@ typedef struct mi_json_html_page_data_ {
 
 typedef struct mi_json_async_resp_data_ {
   gen_lock_t* lock;
-  struct mi_root* tree;
 }mi_json_async_resp_data_t;
 
 

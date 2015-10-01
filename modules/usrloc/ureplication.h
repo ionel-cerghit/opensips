@@ -17,7 +17,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * --------
@@ -32,7 +32,7 @@
 #include "../../socket_info.h"
 #include "../../resolve.h"
 #include "../../timer.h"
-
+#include "../clusterer/api.h"
 #include "urecord.h"
 
 #define REPL_URECORD_INSERT  1
@@ -44,13 +44,10 @@
 #define BIN_VERSION 1
 
 extern int accept_replicated_udata;
-extern struct replication_dest *replication_dests;
 extern str repl_module_name;
 
-struct replication_dest {
-	union sockaddr_union to;
-	struct replication_dest *next;
-};
+extern int ul_replicate_cluster;
+struct clusterer_binds clusterer_api;
 
 /* duplicate local events to other OpenSIPS instances */
 void replicate_urecord_insert(urecord_t *r);
@@ -59,7 +56,7 @@ void replicate_ucontact_insert(urecord_t *r, str *contact, ucontact_info_t *ci);
 void replicate_ucontact_update(urecord_t *r, str *contact, ucontact_info_t *ci);
 void replicate_ucontact_delete(urecord_t *r, ucontact_t *c);
 
-void receive_binary_packet(int packet_type, struct receive_info *ri);
+void receive_binary_packet(int packet_type, struct receive_info *ri, void *att);
 
 #endif /* _USRLOC_REPLICATION_H_ */
 

@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * ---------
@@ -325,7 +325,7 @@ inline static struct usr_avp *internal_search_ID_avp( struct usr_avp *avp,
 
 
 /**
- * search first avp begining with 'start->next'
+ * search first avp beginning with 'start->next'
  * if start==NULL, beging from head of avp list
  */
 struct usr_avp *search_first_avp( unsigned short flags,

@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  */
 
 #include <sys/types.h>/*setsockopt,bind,accept,fork,pid_t*/
@@ -186,7 +186,7 @@ int dispatcher_main_loop(void)
 	    continue;
 	 }
 	 if(errno==EBADF){
-	    LM_ERR("invalid file descriptor pased to poll (%s)\n",
+	    LM_ERR("invalid file descriptor passed to poll (%s)\n",
 				strerror(errno));
 	    return -1;/*??*/
 	 }

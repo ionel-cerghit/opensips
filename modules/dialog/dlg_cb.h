@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * --------
@@ -37,7 +37,7 @@ struct dlg_cell;
 struct dlg_cb_params {
 	struct sip_msg* msg;       /* sip msg related to the callback event */
 	unsigned int direction;    /* direction of the sip msg */
-	void *dlg_data;            /* generic paramter, specific to callback */
+	void *dlg_data;            /* generic parameter, specific to callback */
 	void **param;              /* parameter passed at callback registration*/
 };
 

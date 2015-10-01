@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  * History:
  * ---------
@@ -45,6 +45,9 @@
 #define MI_XMLRPC_FORMATED_OUTPUT 2
 #define MI_XMLRPC_UNFORMATED_OUTPUT 1
 
+#define MI_XMLRPC_ASYNC_FAILED   ((void*)-2)
+#define MI_XMLRPC_ASYNC_EXPIRED  ((void*)-3)
+
 typedef struct mi_xmlrpc_http_html_page_data_ {
 	str page;
 	str buffer;
@@ -52,7 +55,6 @@ typedef struct mi_xmlrpc_http_html_page_data_ {
 
 typedef struct mi_xmlrpc_http_async_resp_data_ {
 	gen_lock_t* lock;
-	struct mi_root* tree;
 }mi_xmlrpc_http_async_resp_data_t;
 
 

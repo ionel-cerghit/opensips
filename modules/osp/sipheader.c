@@ -25,7 +25,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  */
 
 #include <osp/osp.h>
@@ -82,6 +82,28 @@ void ospCopyStrToBuffer(
 
     strncpy(buffer, source->s, copybytes);
     buffer[copybytes] = '\0';
+}
+
+/*
+ * Get local egress address
+ * param ignore1
+ * param ignore2
+ * return  MODULE_RETURNCODE_TRUE success, MODULE_RETURNCODE_FALSE failure MODULE_RETURNCODE_ERROR error
+ */
+int ospGetLocalAddress(
+    struct sip_msg* msg,
+    char* ignore1,
+    char* ignore2)
+{
+    osp_dest* dest;
+
+    if(msg->rcv.bind_address && msg->rcv.bind_address->address_str.s) {
+        if ((dest = ospGetLastOrigDestination())) {
+            ospCopyStrToBuffer(&msg->rcv.bind_address->address_str, dest->egress, sizeof(dest->egress));
+        }
+    }
+
+    return MODULE_RETURNCODE_TRUE;
 }
 
 /*
@@ -1322,8 +1344,8 @@ int ospGetDiversion(
  * return 0 success, -1 failure
  */
 int ospGetUserAgent(
-    struct sip_msg* msg, 
-    char* useragent, 
+    struct sip_msg* msg,
+    char* useragent,
     int bufsize)
 {
     int result = -1;
@@ -1333,15 +1355,14 @@ int ospGetUserAgent(
         if (parse_headers(msg, HDR_USERAGENT_F, 0) == 0) {
             if ((msg->user_agent != NULL) && (msg->user_agent->body.s != NULL) && (msg->user_agent->body.len > 0)) {
                 ospCopyStrToBuffer(&msg->user_agent->body, useragent, bufsize);
-            }            
+            }
             result = 0;
         } else {
             LM_ERR("failed to parse User-Agent header\n");
-        }    
+        }
     } else {
         LM_ERR("bad paraneters to parse User-Agent header\n");
     }
 
     return result;
 }
-

@@ -23,24 +23,29 @@
  * --------
  *  2015-06-08 change from list to hash (Villaron/Tesini)
  *  2015-08-05 code review (Villaron/Tesini)
+ *  2015-09-07 final test cases (Villaron/Tesini)
  */
 #include "../../lock_ops.h"
-#include "xml_parser.h" 
+#include "xml_parser.h"
 
 #define PKG_MEM_STR       "pkg"
 #define SHARE_MEM         "share"
 
 #define CONT_COPY(buf, dest, source)\
-	if(source){	dest= (char*)buf+ size;\
-	memcpy(dest, source, strlen(source));\
-	size+= strlen(source) + 1;\
+	if(source){dest= (char*)buf+ size;\
+		if(source == empty){\
+			dest = empty;\
+		}else{\
+			memcpy(dest, source, strlen(source));\
+		}\
+		size+= strlen(source) + 1;\
 	}
 
 #define CONT_COPY_STR(buf, dest, source)\
 	do{	dest.s= (char*)buf+ size;\
-	memcpy(dest.s, source.s, source.len);\
-	dest.len= source.len;\
-	size+= source.len;\
+		memcpy(dest.s, source.s, source.len);\
+		dest.len= source.len;\
+		size+= source.len;\
 	} while(0)
 
 typedef struct call_htable

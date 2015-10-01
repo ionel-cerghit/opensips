@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * --------
@@ -816,13 +816,12 @@ dp_connection_list_p dp_add_connection(dp_head_p head)
 				+ head->partition.len + head->dp_db_url.len;
 	el = shm_malloc(all_size);
 
-	if(!el)
-		LM_ERR("No more shm\n");
-
 	if (!el) {
 		LM_ERR("No more shm mem\n");
 		return NULL;
 	}
+
+	memset(el, 0, sizeof(dp_connection_list_t));
 
 	/* create & init lock */
 	if((el->ref_lock = lock_init_rw()) == NULL) {

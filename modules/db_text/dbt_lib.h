@@ -17,7 +17,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * --------
@@ -111,6 +111,7 @@ typedef struct _dbt_cache
 int dbt_init_cache();
 int dbt_cache_destroy();
 int dbt_cache_print(int);
+int dbt_cache_reload(const str *dbname, const str *name);
 
 dbt_cache_p dbt_cache_get_db(str*);
 int dbt_cache_check_db(str*);

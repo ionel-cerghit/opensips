@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * --------
@@ -350,7 +350,7 @@ static inline void detach_node_unsafe(struct dlg_ping_list *it)
 }
 
 /* returns:
- * 0 if removed succesfully
+ * 0 if removed successfully
  * 1 if dlg not found in list
  */
 int remove_ping_timer(struct dlg_cell *dlg)

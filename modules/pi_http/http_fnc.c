@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  * History:
  * ---------
@@ -2607,7 +2607,7 @@ int getVal(db_val_t *val, db_type_t val_type, db_key_t key, ph_db_table_t *table
 			LM_DBG("[%.*s] has flags [%d]\n", key->len, key->s, flags);
 			if(flags){
 				PI_HTTP_BUILD_REPLY(page, buffer, mod, cmd,
-					"Unkown validation [%d] for %s.",
+					"Unknown validation [%d] for %s.",
 					table->cols[i].validation, key->s);
 				goto done;
 			}

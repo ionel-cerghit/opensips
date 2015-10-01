@@ -16,7 +16,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * --------
@@ -72,6 +72,7 @@
 #define DLG_FLAG_TOPHIDING		(1<<7)
 #define DLG_FLAG_VP_CHANGED		(1<<8)
 #define DLG_FLAG_DB_DELETED		(1<<9)
+#define DLG_FLAG_CSEQ_ENFORCE		(1<<10)
 
 #define DLG_CALLER_LEG         0
 #define DLG_FIRST_CALLEE_LEG   1

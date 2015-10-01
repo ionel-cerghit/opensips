@@ -17,7 +17,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * --------
@@ -105,7 +105,7 @@ static inline int parse_token(str* _s, str* _r)
 {
 	int i;
 
-	     /* Save the begining of the
+	     /* Save the beginning of the
 	      * token in _r->s
 	      */
 	_r->s = _s->s;
@@ -168,7 +168,7 @@ static inline int parse_digest_param(str* _s, dig_cred_t* _c)
 	_s->s++;  /* skip = */
 	_s->len--;
 
-	     /* Find the begining of body */
+	     /* Find the beginning of body */
 	trim_leading(_s);
 
 	if (_s->len == 0) {

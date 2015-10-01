@@ -17,7 +17,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * ========
@@ -33,7 +33,7 @@
  */
 
 
-#include "dlist.h"
+#include <inttypes.h>
 #include <stdlib.h>	       /* abort */
 #include <string.h>            /* strlen, memcmp */
 #include <stdio.h>             /* printf */
@@ -45,6 +45,7 @@
 #include "../../socket_info.h"
 #include "../../parser/parse_rr.h"
 #include "../../parser/parse_uri.h"
+#include "dlist.h"
 #include "udomain.h"           /* new_udomain, free_udomain */
 #include "utime.h"
 #include "ul_mod.h"
@@ -859,7 +860,7 @@ ucontact_t* get_ucontact_from_id(udomain_t *d, uint64_t contact_id, urecord_t **
 			continue;
 
 		for (c = r->contacts; c != NULL; c = c->next)
-			if (c->label == clabel) {
+			if ((unsigned short)c->label == clabel) {
 				*_r = r;
 				unlock_ulslot(d, sl);
 				return c;
@@ -889,8 +890,13 @@ int delete_ucontact_from_id(udomain_t *d, uint64_t contact_id, char is_replicate
 	}
 
 	c = get_ucontact_from_id(d, contact_id, &r);
+	if (c == NULL) {
+		LM_WARN("contact with contact id [%" PRIu64 "] not found\n",
+			contact_id);
+		return 0;
+	}
 
-	if (!is_replicated && replication_dests)
+	if (!is_replicated && ul_replicate_cluster)
 		replicate_ucontact_delete(r, c);
 
 	if (exists_ulcb_type(UL_CONTACT_DELETE)) {

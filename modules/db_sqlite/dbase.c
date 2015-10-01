@@ -16,7 +16,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History
  * -------
@@ -161,6 +161,8 @@ int db_sqlite_query(const db_con_t* _h, const db_key_t* _k, const db_op_t* _op,
 #else
 	CON_RESET_CURR_PS(_h);
 #endif
+	CON_RAW_QUERY(_h) = 0;
+
 	ret = db_do_query(_h, _k, _op, _v, _c, _n, _nc, _o, NULL,
 		db_sqlite_val2str, db_sqlite_submit_dummy_query, NULL);
 	if (ret != 0) {
@@ -341,6 +343,7 @@ int db_sqlite_raw_query(const db_con_t* _h, const str* _s, db_res_t** _r)
 		return 0;
 	}
 
+	CON_RAW_QUERY(_h) = 1;
 
 	if (db_copy_rest_of_count(_s, &count_str)) {
 		LM_ERR("failed to build count str!\n");

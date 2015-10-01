@@ -17,7 +17,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * --------
@@ -117,7 +117,7 @@ static inline void presence_raise_event(presentity_t* presentity)
 }
 
 
-void inline build_extra_hdrs(struct sip_msg* msg, const str* map, str* extra_hdrs)
+static inline void build_extra_hdrs(struct sip_msg* msg, const str* map, str* extra_hdrs)
 {
 	struct hdr_field *hf;
 	str xtra_hdr_list[MAX_NO_OF_EXTRA_HDRS];

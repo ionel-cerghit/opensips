@@ -25,6 +25,7 @@
  *  2015-03-21 implementing subscriber function (Villaron/Tesini)
  *  2015-04-29 implementing notifier function (Villaron/Tesini)
  *  2015-08-05 code review (Villaron/Tesini)
+ *  2015-09-07 final test cases (Villaron/Tesini)
  */
 
 const char *MODEL = "<esrRequest xmlns=\"urn:nena:xml:ns:es:v2\" \n \
@@ -60,3 +61,4 @@ xsi:schemaLocation=\"urn:nena:xml:ns:es:v2 v2.xsd\"> \n \
 <datetimestamp>%s</datetimestamp> \n \
 <customer>0</customer> \n \
 </esrRequest>";
+

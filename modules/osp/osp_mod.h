@@ -25,7 +25,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  */
 
 #ifndef _OSP_MOD_H_
@@ -63,6 +63,9 @@
 #define OSP_DEF_SNIDAVP                 "$avp(_osp_source_networkid_)"
 #define OSP_DEF_CINFOS                  8
 #define OSP_DEF_CINFOAVP                "$avp(_osp_custom_info_)"
+#define OSP_DEF_CNAMAVP                 "$avp(_osp_cnam_)"
+#define OSP_DEF_SRCMEDIAAVP             "$avp(_osp_source_media_address_)"
+#define OSP_DEF_DESTMEDIAAVP            "$avp(_osp_destination_media_address_)"
 
 #define OSP_STRBUF_SIZE                 256
 #define OSP_KEYBUF_SIZE                 1024

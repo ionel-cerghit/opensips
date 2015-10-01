@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to" the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  */
 
 /*!
@@ -174,6 +174,9 @@ inline static int parse_proto(unsigned char* s, long len, int* proto)
 			if(len==4 && (s[3]=='p' || s[3]=='P')) {
 				*proto=PROTO_SCTP; return 0;
 			}
+			break;
+		case PROTO2UINT('w', 's', 's'):
+			if(len==3) { *proto=PROTO_WSS; return 0; }
 			break;
 		case PROTO2UINT('b', 'i', 'n'):
 			if(len==3) { *proto=PROTO_BIN; return 0; }

@@ -18,7 +18,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History
  * -------
@@ -692,6 +692,8 @@ static int mod_init(void)
 {
 
 	LM_DBG("initializing ...\n");
+
+	init_db_url( default_db_head.db_url , 0 /*can be null*/);
 
 	if (check_if_default_head_is_ok()) {
 		default_db_head.next = ds_db_heads;

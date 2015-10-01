@@ -16,7 +16,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * --------
@@ -350,8 +350,13 @@ inline static int io_watch_add(	io_wait_h* h,
 			h->name, prio, h->max_prio);
 		goto error;
 	}
+#if defined (HAVE_EPOLL)
 	LM_DBG("[%s] io_watch_add op (%d on %d) (%p, %d, %d, %p,%d), fd_no=%d/%d\n",
 			h->name,fd,h->epfd, h,fd,type,data,flags,h->fd_no,h->max_fd_no);
+#else
+	LM_DBG("[%s] io_watch_add op (%d) (%p, %d, %d, %p,%d), fd_no=%d/%d\n",
+			h->name,fd, h,fd,type,data,flags,h->fd_no,h->max_fd_no);
+#endif
 	//fd_array_print;
 	/*  hash sanity check */
 	e=get_fd_map(h, fd);

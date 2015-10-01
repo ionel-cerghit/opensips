@@ -17,7 +17,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * --------
@@ -324,7 +324,7 @@ int get_auth_id(struct sip_msg* _msg, char* _uri, char* _auth_user, char* _auth_
 	}
 
 	/* if more than one matching db entry is found, there is either a duplicate or a
-	   wrong tuple in the database. or maybe just the 'use_domain' paramter should be set. */
+	   wrong tuple in the database. or maybe just the 'use_domain' parameter should be set. */
 	if (RES_ROW_N(dbres) > 1) {
 		LM_WARN("Multiple entries are matching the given uri. Consider setting the 'use_domain' param.");
 	}

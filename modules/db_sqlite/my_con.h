@@ -16,7 +16,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History
  * -------
@@ -37,6 +37,8 @@ struct my_con {
 	struct db_transfer *transfers; /**< Array of ongoing async operations */
 	struct pool_con *next;   /**< Next element in the pool (different db_id) */
 
+	int raw_query;           /**< indicates whether a select query
+									is a raw query*/
 
 	sqlite3* con;              /* Connection representation */
 	sqlite3_stmt* curr_ps;
@@ -63,6 +65,7 @@ struct prep_stmt {
 #define CON_CONNECTION(db_con) (((struct my_con*)((db_con)->tail))->con)
 #define CON_ROW(db_con)        (((struct my_con*)((db_con)->tail))->row)
 #define CON_SQLITE_PS(db_con)  (((struct my_con*)((db_con)->tail))->curr_ps)
+#define CON_RAW_QUERY(db_con)  (((struct my_con*)((db_con)->tail))->raw_query)
 #define CON_PS_ROWS(db_con)  (((struct my_con*)((db_con)->tail))->curr_ps_rows)
 #define CON_DISCON(db_con)     (((struct my_con*)((db_con)->tail))->disconnected)
 

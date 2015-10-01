@@ -17,7 +17,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * ========
@@ -139,7 +139,7 @@ unpack_indexes(uint64_t v,
 	}
 
 	/* first 14 bits 0-13 */
-	*clabel  = v & 0x7FFF;
+	*clabel  = v & CLABEL_MASK;
 	/* middle 32 bits 14-45 */
 	*rlabel  = (v >> 14) & 0xFFFFFFFF;
 	/* last 16 bits 46-61 */

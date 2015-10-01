@@ -17,7 +17,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * --------
@@ -37,6 +37,7 @@
 
 #define LB_FLAGS_RELATIVE (1<<0) /* do relative versus absolute estimation. default is absolute */
 #define LB_FLAGS_NEGATIVE (1<<1) /* do not skip negative loads. default to skip */
+#define LB_FLAGS_RANDOM   (1<<2) /* pick a random destination among all selected dsts with equal load */
 #define LB_FLAGS_DEFAULT  0
 
 #define LB_DST_PING_DSBL_FLAG   (1<<0)

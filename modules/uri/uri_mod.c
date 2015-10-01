@@ -19,7 +19,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  */
 
@@ -153,6 +153,9 @@ static cmd_export_t cmds[] = {
 			fixup_str_str, 0,
 			REQUEST_ROUTE|LOCAL_ROUTE},
 	{"add_uri_param", (cmd_function)add_uri_param, 1,
+			fixup_str_null, 0,
+			REQUEST_ROUTE},
+	{"del_uri_param", (cmd_function)del_uri_param, 1,
 			fixup_str_null, 0,
 			REQUEST_ROUTE},
 	{"tel2sip", (cmd_function)tel2sip, 0, 0, 0,

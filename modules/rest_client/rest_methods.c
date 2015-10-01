@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * -------
@@ -332,7 +332,7 @@ enum async_ret_code resume_async_http_req(int fd, struct sip_msg *msg, void *_pa
 		}
 
 	} else if (FD_ISSET(fd, &rset)) {
-		LM_DBG("fd %d still transfering...\n", fd);
+		LM_DBG("fd %d still transferring...\n", fd);
 		async_status = ASYNC_CONTINUE;
 		return 1;
 	}

@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  *
  * history:
@@ -189,7 +189,7 @@ int t_handle_async(struct sip_msg *msg, struct action* a , int resume_route)
 			(char*)a->elem[5].u.data, (char*)a->elem[6].u.data );
 	/* what to do now ? */
 	if (async_status>=0) {
-		/* async I/O was succesfully launched */
+		/* async I/O was successfully launched */
 		fd = async_status;
 	} else if (async_status==ASYNC_NO_IO) {
 		/* no IO, so simply go for resume route */

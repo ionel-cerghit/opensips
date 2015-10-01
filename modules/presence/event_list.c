@@ -17,7 +17,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * --------
@@ -235,7 +235,7 @@ int add_event(pres_ev_t* event)
 	}
 	EvList->ev_count++;
 
-	LM_DBG("succesfully added event: %.*s - len= %d\n",ev->name.len,
+	LM_DBG("successfully added event: %.*s - len= %d\n",ev->name.len,
 			ev->name.s, ev->name.len);
 
 	/* if event 'presence' set the pointer */

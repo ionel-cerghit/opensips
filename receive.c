@@ -16,7 +16,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * ---------
@@ -135,7 +135,7 @@ int receive_msg(char* buf, unsigned int len, struct receive_info* rcv_info)
 	if (parse_msg(in_buff.s,len, msg)!=0){
 		tmp=ip_addr2a(&(rcv_info->src_ip));
 		LM_ERR("Unable to parse msg received from [%s:%d]\n", tmp, rcv_info->src_port);
-		/* if a REQUEST msg was detected (first line was succesfully parsed) we
+		/* if a REQUEST msg was detected (first line was successfully parsed) we
 		   should trigger the error route */
 		if ( msg->first_line.type==SIP_REQUEST && error_rlist.a!=NULL )
 			run_error_route(msg, 1);

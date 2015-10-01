@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  *
  * history:
@@ -310,7 +310,7 @@ int redis_set(cachedb_con *connection,str *attr,str *val,int expires)
 	return 0;
 }
 
-/* returns 0 in case of succesful remove
+/* returns 0 in case of successful remove
  * returns 1 in case of key not existent
  * return -1 in case of error */
 int redis_remove(cachedb_con *connection,str *attr)
@@ -331,7 +331,7 @@ int redis_remove(cachedb_con *connection,str *attr)
 		LM_DBG("Key %.*s does not exist in DB\n",attr->len,attr->s);
 		ret = 1;
 	} else
-		LM_DBG("Key %.*s succesfully removed\n",attr->len,attr->s);
+		LM_DBG("Key %.*s successfully removed\n",attr->len,attr->s);
 
 	freeReplyObject(reply);
 	return ret;

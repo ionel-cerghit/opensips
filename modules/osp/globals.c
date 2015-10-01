@@ -25,7 +25,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  */
 
 #include <stdio.h>
@@ -82,6 +82,14 @@ unsigned short _osp_snid_avptype;
 char* _osp_cinfo_avp = OSP_DEF_CINFOAVP;
 int_str _osp_cinfo_avpid;
 unsigned short _osp_cinfo_avptype;
-
+char* _osp_cnam_avp = OSP_DEF_CNAMAVP;
+int_str _osp_cnam_avpid;
+unsigned short _osp_cnam_avptype;
+char* _osp_srcmedia_avp = OSP_DEF_SRCMEDIAAVP;
+int_str _osp_srcmedia_avpid;
+unsigned short _osp_srcmedia_avptype;
+char* _osp_destmedia_avp = OSP_DEF_DESTMEDIAAVP;
+int_str _osp_destmedia_avpid;
+unsigned short _osp_destmedia_avptype;
 OSPTPROVHANDLE _osp_provider = -1;
 

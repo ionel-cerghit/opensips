@@ -16,7 +16,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * -------
@@ -463,7 +463,7 @@ void handle_sigs(void)
 				for( i=0 ; i<counted_processes ; i++ )
 					if (pt[i].pid==chld) break;
 				if (i==counted_processes) {
-					LM_DBG("unkown child process %d ended. Ignoring\n",chld);
+					LM_DBG("unknown child process %d ended. Ignoring\n",chld);
 					continue;
 				}
 				do_exit = 1;
@@ -1022,6 +1022,12 @@ try_again:
 		LM_ERR("bad function call in config file\n");
 		return ret;
 	}
+
+	if (solve_module_dependencies(modules) != 0) {
+		LM_ERR("failed to solve module dependencies\n");
+		return -1;
+	}
+
 #ifdef EXTRA_DEBUG
 	print_rl();
 #endif

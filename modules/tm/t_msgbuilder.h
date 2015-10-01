@@ -16,7 +16,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * --------
@@ -191,6 +191,17 @@ static inline int fake_req(struct sip_msg *faked_req, struct sip_msg *shm_msg,
 			   shm_msg->set_global_port.len);
 	}
 
+	if (shm_msg->path_vec.s) {
+		faked_req->path_vec.s = pkg_malloc(shm_msg->path_vec.len);
+		if (!faked_req->path_vec.s) {
+			LM_ERR("out of pkg mem\n");
+			goto out2;
+		}
+		memcpy(faked_req->path_vec.s, shm_msg->path_vec.s,
+			   shm_msg->path_vec.len);
+	}
+
+
 	/* we could also restore dst_uri, but will be confusing from script,
 	 * so let it set to NULL */
 
@@ -200,7 +211,8 @@ static inline int fake_req(struct sip_msg *faked_req, struct sip_msg *shm_msg,
 	setb0flags( faked_req, uac->br_flags);
 
 	return 1;
-
+out2:
+	pkg_free(faked_req->set_global_port.s);
 out1:
 	pkg_free(faked_req->set_global_address.s);
 out:

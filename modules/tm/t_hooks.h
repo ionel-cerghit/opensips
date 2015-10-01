@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * --------
@@ -85,7 +85,7 @@ struct cell;
  *
  * TMCB_RESPONSE_PRE_OUT -- a final reply is about to be sent out
  *  (either local or proxied); you cannnot change the reply, but
- *  it is usefull to update your state before putting the reply on
+ *  it is useful to update your state before putting the reply on
  *  the network and to avoid any races (receiving an ACK before
  *  updating with the status of the reply)
  *

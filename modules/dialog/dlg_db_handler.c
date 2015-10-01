@@ -16,7 +16,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * --------
@@ -1459,7 +1459,7 @@ void dialog_update_db(unsigned int ticks, void * param)
 		LM_DBG("dlg timer attempting to flush rows to DB\n");
 		/* flush everything to DB
 		 * so that next-time timer fires
-		 * we are sure that DB updates will be succesful */
+		 * we are sure that DB updates will be successful */
 		if (ql_flush_rows(&dialog_dbf,dialog_db_handle,ins_list) < 0)
 			LM_ERR("failed to flush rows to DB\n");
 	}
@@ -2054,7 +2054,7 @@ static int restore_dlg_db(void)
 		LM_DBG("attempting to flush rows to DB\n");
 		/* flush everything to DB
 		 * so that next-time timer fires
-		 * we are sure that DB updates will be succesful */
+		 * we are sure that DB updates will be successful */
 		if (ql_flush_rows(&dialog_dbf,dialog_db_handle,ins_list) < 0)
 			LM_ERR("failed to flush rows to DB\n");
 	}

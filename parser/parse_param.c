@@ -17,7 +17,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * -------
@@ -225,7 +225,7 @@ static inline int parse_token_param(str* _s, str* _r)
 		return -1;
 	}
 
-	     /* Save the begining of the
+	     /* Save the beginning of the
 	      * token in _r->s
 	      */
 	_r->s = _s->s;

@@ -16,7 +16,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * -------
@@ -422,6 +422,17 @@ error02:
 	}
 error01:
 	post_print_uac_request( request, uri, next_hop);
+	if (ret < 0) {
+		/* destroy all the bavps added, the path vector and the destination,
+		 * since this branch will never be properly added to
+		 * the UAC list, otherwise we'll have memory leaks - razvanc */
+		if (t->uac[branch].user_avps)
+			destroy_avp_list(&t->uac[branch].user_avps);
+		if (t->uac[branch].path_vec.s)
+			shm_free(t->uac[branch].path_vec.s);
+		if (t->uac[branch].duri.s)
+			shm_free(t->uac[branch].duri.s);
+	}
 error:
 	return ret;
 }

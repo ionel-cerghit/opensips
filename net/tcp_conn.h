@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  *
  * History:
@@ -68,7 +68,7 @@ enum conn_cmds { CONN_DESTROY=-3, CONN_ERROR=-2, CONN_EOF=-1, CONN_RELEASE,
  * list head, new element, next member, prev member */
 #define tcpconn_listadd(head, c, next, prev) \
 	do{ \
-		/* add it at the begining of the list*/ \
+		/* add it at the beginning of the list*/ \
 		(c)->next=(head); \
 		(c)->prev=0; \
 		if ((head)) (head)->prev=(c); \

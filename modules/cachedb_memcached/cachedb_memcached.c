@@ -16,7 +16,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  *
  * History:
@@ -407,7 +407,7 @@ memcached_con* memcached_new_connection(struct cachedb_id *id)
 		return 0;
 	}
 
-	LM_DBG("succesfully inited memcached connection\n");
+	LM_DBG("successfully inited memcached connection\n");
 	return con;
 }
 
@@ -459,7 +459,7 @@ static int mod_init(void)
 		return -1;
 	}
 
-	LM_DBG("succesfully inited cachedb_memcached\n");
+	LM_DBG("successfully inited cachedb_memcached\n");
 	return 0;
 }
 

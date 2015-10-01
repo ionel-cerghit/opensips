@@ -16,7 +16,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  *
  * History:
@@ -31,8 +31,7 @@
 #include "../../net/proto_tcp/tcp_common_defs.h"
 
 int ws_raw_read(struct tcp_connection *c, struct tcp_req *r);
-int ws_raw_write(struct tcp_connection *c, int fd, char *buf, int len);
 int ws_raw_writev(struct tcp_connection *c, int fd,
-		const struct iovec *iov, int iovcnt);
+		const struct iovec *iov, int iovcnt, int tout);
 
 #endif /* _WS_TCP_H_ */

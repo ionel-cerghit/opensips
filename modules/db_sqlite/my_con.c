@@ -16,7 +16,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History
  * -------
@@ -51,7 +51,7 @@ int db_sqlite_connect(struct my_con* ptr)
 
 	/* if connection already in use, close it first*/
 	if (ptr->init)
-		sqlite3_close_v2(ptr->con);
+		sqlite3_close(ptr->con);
 
 	ptr->init = 1;
 

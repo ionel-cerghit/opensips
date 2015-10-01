@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * --------
@@ -148,10 +148,6 @@ typedef struct ua_client
 	str              duri;
 	/* the path vector used for this branch */
 	str              path_vec;
-	/* the list of extra headers in the request sent out from a dlg structure */
-	str              extra_headers;
-	/* the body in the request sent out from a dlg structure */
-	str              body;
 	/* number of RR headers that were locally added for this branch */
 	unsigned int     added_rr;
 	/* if we store a reply (branch picking), this is where it is */

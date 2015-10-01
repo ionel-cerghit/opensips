@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * --------
@@ -573,7 +573,7 @@ int send_sms_as_sip( struct incame_sms *sms )
 	/* the rest of the sms (if any ;-)) is the body! */
 	sip_body.s = p;
 	sip_body.len = sms->ascii + sms->userdatalength - p;
-	/* let's trim out all \n an \r from begining */
+	/* let's trim out all \n an \r from beginning */
 	while ( sip_body.len && sip_body.s
 	&& (sip_body.s[0]=='\n' || sip_body.s[0]=='\r') ) {
 		sip_body.s++;

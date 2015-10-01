@@ -17,7 +17,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * --------
@@ -318,7 +318,7 @@ static int load_pcres(int action)
 			i++;
 			/* Check if there are more patterns than the max value */
 			if (i >= max_groups) {
-				LM_ERR("max patterns exceded\n");
+				LM_ERR("max patterns exceeded\n");
 				fclose(f);
 				goto err;
 			}
@@ -330,7 +330,7 @@ static int load_pcres(int action)
 
 		/* Check if the patter size is too big (aprox) */
 		if (strlen(patterns[i]) + strlen(line) >= group_max_size - 2) {
-			LM_ERR("pattern max file exceded\n");
+			LM_ERR("pattern max file exceeded\n");
 			fclose(f);
 			goto err;
 		}
@@ -454,6 +454,9 @@ static int load_pcres(int action)
 		pkg_free(pcres_tmp[i]);
 	}
 	pkg_free(pcres_tmp);
+	/* release the "non-existing" patterns */
+	for (i = num_pcres_tmp; i < max_groups; i++)
+		pkg_free(patterns[i]);
 	pkg_free(patterns);
 	lock_release(reload_lock);
 

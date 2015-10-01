@@ -16,7 +16,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.
  *
  *
  * history:
@@ -26,6 +26,7 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <netinet/in.h>
 #include <netinet/in_systm.h>
 #include <netinet/ip.h>
 #include <netinet/tcp.h>
@@ -646,7 +647,7 @@ static struct tcp_connection* tcpconn_add(struct tcp_connection *c)
 
 	if (c){
 		TCPCONN_LOCK(c->id);
-		/* add it at the begining of the list*/
+		/* add it at the beginning of the list*/
 		hash=tcp_id_hash(c->id);
 		c->id_hash=hash;
 		tcpconn_listadd(TCP_PART(c->id).tcpconn_id_hash[hash], c, id_next,
@@ -837,7 +838,7 @@ static struct tcp_connection* tcpconn_new(int sock, union sockaddr_union* su,
 
 error:
 	if (c) {
-		if (c->write_lock) lock_destroy(&c->write_lock);
+		lock_destroy(&c->write_lock);
 		shm_free(c);
 	}
 	return 0;
@@ -1056,7 +1057,7 @@ inline static int handle_tcpconn_ev(struct tcp_connection* tcpconn, int fd_i,
 		/* we received a write event */
 		if (tcpconn->state==S_CONN_CONNECTING) {
 			/* we're coming from an async connect & write
-			 * let's see if we connected succesfully*/
+			 * let's see if we connected successfully*/
 			err_len=sizeof(err);
 			getsockopt(tcpconn->s, SOL_SOCKET, SO_ERROR, &err, &err_len);
 			if (err != 0) {
@@ -1068,10 +1069,10 @@ inline static int handle_tcpconn_ev(struct tcp_connection* tcpconn, int fd_i,
 				return 0;
 			}
 
-			/* we succesfully connected - further treat this case as if we
+			/* we successfully connected - further treat this case as if we
 			 * were coming from an async write */
 			tcpconn->state = S_CONN_OK;
-			LM_DBG("Succesfully completed previous async connect\n");
+			LM_DBG("Successfully completed previous async connect\n");
 
 			goto async_write;
 		} else {
@@ -1105,7 +1106,7 @@ async_write:
 /*! \brief handles io from a tcp worker process
  * \param  tcp_c - pointer in the tcp_children array, to the entry for
  *                 which an io event was detected
- * \param  fd_i  - fd index in the fd_array (usefull for optimizing
+ * \param  fd_i  - fd index in the fd_array (useful for optimizing
  *                 io_watch_deletes)
  * \return handle_* return convention: -1 on error, 0 on EAGAIN (no more
  *           io events queued), >0 on success. success/error refer only to
@@ -1220,7 +1221,7 @@ error:
  *
  * \param p     - pointer in the ser processes array (pt[]), to the entry for
  *                 which an io event was detected
- * \param fd_i  - fd index in the fd_array (usefull for optimizing
+ * \param fd_i  - fd index in the fd_array (useful for optimizing
  *                 io_watch_deletes)
  * \return  handle_* return convention:
  *          - -1 on error reading from the fd,

@@ -25,7 +25,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  */
 
 #ifndef _OSP_MOD_SIPHEADER_H_
@@ -57,6 +57,7 @@
 #define OSP_MNC_SIZE        3
 
 void ospCopyStrToBuffer(str* source, char* buffer, int bufsize);
+int ospGetLocalAddress(struct sip_msg*, char*, char*);
 int ospGetFromDisplay(struct sip_msg* msg, char* fromdisplay, int bufsize);
 int ospGetFromUserpart(struct sip_msg* msg, char* fromuser, int bufsize);
 int ospGetRpidUserpart(struct sip_msg* msg, char* rpiduser, int bufsize);

@@ -17,7 +17,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301  USA
  *
  * History:
  * --------
@@ -275,7 +275,7 @@ static int fixup_resources(void** param, int param_no)
 		if (lbp->type & RES_TEXT) {
 			lb_rl = parse_resources_list( (char *)(*param), 0);
 			if (lb_rl==NULL) {
-				LM_ERR("invalid paramter %s\n",(char *)(*param));
+				LM_ERR("invalid parameter %s\n",(char *)(*param));
 				return E_CFG;
 			}
 			pkg_free(*param);
@@ -600,6 +600,10 @@ static int w_lb_start(struct sip_msg *req, char *grp, char *rl, char *fl)
 				case 'n':
 					flags |= LB_FLAGS_NEGATIVE;
 					LM_DBG("do not skip negative loads\n");
+					break;
+				case 's':
+					flags |= LB_FLAGS_RANDOM;
+					LM_DBG("pick a random destination among all selected dsts with equal load\n");
 					break;
 				default:
 					LM_DBG("skipping unknown flag: [%c]\n", *f);
