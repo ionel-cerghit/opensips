@@ -50,7 +50,11 @@ void receive_binary_packet(enum clusterer_event ev, int packet_type,
 int is_local_record(str *aor);
 int dht_single_fetch(cachedb_con *con,str* attr, str* res);
 int dht_insert(cachedb_con *con,str* attr, str* value, int expires);
+void cache_clean(unsigned int ticks,void *param);
 static int create_table(void);
+void bulk_send(int start, int end, int dest);
+void down_event_node(int node);
+int receive_bulk_insert(void);
 
 str dht_mod_name = str_init("dht_cluster");
 int ring_size = 5;
@@ -60,20 +64,23 @@ uint64_t last_updated;
 int refresh_interval = 0;
 int cluster_id = 0;
 int repl_auth_check = 0;
+int clean_period = 100;
 struct registers_table *ring_table;
 struct clusterer_binds clusterer_api;
 clusterer_node_t **ordered_nodes;
 clusterer_node_t *cluster_list;
 
+#define NR_RECORDS_OFFSET HEADER_SIZE + 3 * LEN_FIELD_SIZE + dht_mod_name.len + CMD_FIELD_SIZE 
 #define REPLICATION_OFFSET HEADER_SIZE + 2 * LEN_FIELD_SIZE + dht_mod_name.len + CMD_FIELD_SIZE 
 #define KEY_OFFSET HEADER_SIZE +  LEN_FIELD_SIZE + dht_mod_name.len + CMD_FIELD_SIZE
 
 static param_export_t params[]={
-	{ "dht_ring_size",   INT_PARAM, &ring_size },
+	{ "ring_size",   INT_PARAM, &ring_size },
 	{ "replication_factor", INT_PARAM, &replication_factor },
 	{ "refresh_interval",     INT_PARAM, &refresh_interval },
 	{ "cluster_id",     INT_PARAM, &cluster_id },
 	{ "dht_repl_auth_check",     INT_PARAM, &repl_auth_check },
+	{ "clean_period",     INT_PARAM, &clean_period },
 	{0,0,0}
 };
 
@@ -170,7 +177,7 @@ static int mod_init(void)
 	}
 
 	/* register the cache system */
-	cde.name = dht_mod_name;
+	cde.name = name;
 
 	cde.cdb_func.init = dht_cache_init;
 	cde.cdb_func.destroy = dht_cache_destroy;
@@ -202,10 +209,10 @@ static int mod_init(void)
 	}
 
 	/* register timer to delete the expired entries */
-	//register_timer("dhtcache-expire",localcache_clean, 0,
-	//	cache_clean_period, TIMER_FLAG_DELAY_ON_DELAY);
+	register_timer("dhtcache-expire",cache_clean, 0,
+		clean_period, TIMER_FLAG_DELAY_ON_DELAY);
 
-	if( !load_clusterer_api(&clusterer_api)!=0){
+	if(load_clusterer_api(&clusterer_api)!=0){
 		LM_DBG("failed to find clusterer API - is clusterer module loaded?\n");
 		return -1;
 	}
@@ -240,7 +247,8 @@ static void destroy(void)
 }
 
 void print_register_table (void) {
-	char buff[10000], aux[100];
+	//TODO needs deperate rework
+	char buff[1000000], aux[10000];
 	int i;
 	struct register_cell *cell;
 	struct machines_list *nod;
@@ -341,8 +349,8 @@ int find_local_ring(str *attr, str *val) {
 		if (str_cmp(cell->attr, *attr) == 0) {
 			found = 1;
 			for (nod = cell->nodes; nod; nod=nod->next)
-				if(nod->expires > time(0)){
-					pkg_str_dup(&nod->val, val);
+				if(nod->expires > time(0) || nod->expires == 0){
+					pkg_str_dup(val,&nod->val);
 					break;
 				}
 				else {
@@ -354,10 +362,12 @@ int find_local_ring(str *attr, str *val) {
 
 	lock_set_release(ring_table->locks, hash);
 
-	if(found) 
+	if(found) {
 		return 0;
-	else
+	}
+	else {
 		return -1;
+	}
 }
 
 int insert_local_ring(str *attr, time_t expires, str *val) {
@@ -369,6 +379,8 @@ int insert_local_ring(str *attr, time_t expires, str *val) {
 	hash = hash % ring_table->size;
 	LM_DBG("HHH hash is: %u\n", hash);
 
+	expires += time(0);
+
 	lock_set_get(ring_table->locks, hash);
 	for (cell = ring_table->buckets[hash]; cell; cell = cell->next) {
 		if (str_cmp(cell->attr, *attr) == 0){
@@ -379,6 +391,7 @@ int insert_local_ring(str *attr, time_t expires, str *val) {
 
 	if (found) {	
 		//check if we have a newer register from same machine and update it
+		LM_DBG("XXX found key\n");
 		for (nod = cell->nodes; nod; nod=nod->next) {
 			if (str_cmp(nod->val, *val) == 0) {
 				nod->expires = expires;
@@ -392,13 +405,15 @@ int insert_local_ring(str *attr, time_t expires, str *val) {
 			}
 		}
 	} else {
-		ring_table->buckets[hash] = shm_malloc(sizeof(struct register_cell));
-		if (!ring_table->buckets[hash]) {
+		LM_DBG("XXX NOt found key\n");
+		cell = shm_malloc(sizeof(struct register_cell));
+		if (!cell) {
 			goto err;
 		}
-		cell = ring_table->buckets[hash];
+		cell->next = ring_table->buckets[hash];
 		shm_str_dup(&cell->attr, attr);
-		cell->next = NULL;
+		ring_table->buckets[hash] = cell;
+		cell->nodes = NULL;
 		if(insert_new_machine_register(expires, val, cell)){
 			goto err;
 		}
@@ -446,7 +461,8 @@ int is_local_record(str *attr){
 }
 
 static void print_destination_vector(void){
-	char buf[1000];
+	//TODO needs desperate rework
+	char buf[100000];
 	char gigi[100];
 	int i;
 
@@ -588,8 +604,10 @@ static int is_between(int dest, int start, int end)
 {
     if (start < end)
 		return start <= dest && dest < end;
-    else
+    else if (start > end)
 		return start <= dest || dest < end;
+	else
+		return start == dest;
 }
 
 void receive_binary_packet(enum clusterer_event ev, int packet_type,
@@ -600,7 +618,7 @@ void receive_binary_packet(enum clusterer_event ev, int packet_type,
 	str send_buffer;
 
 	if (ev == CLUSTER_NODE_DOWN) {
-		//down_event_node(dest_id);
+		down_event_node(dest_id);
 		return;
 	}
 	else if (ev == CLUSTER_NODE_UP) {
@@ -669,6 +687,9 @@ void receive_binary_packet(enum clusterer_event ev, int packet_type,
 	case INSERT_RING:
 		rc = receive_partial_ucontact_insert();
 		break;
+	case BULK_NODES_INSERT:
+		rc = receive_bulk_insert();
+		break;
 	default:
 		rc = -1;
 		LM_ERR("invalid usrloc binary packet type: %d\n", packet_type);
@@ -687,6 +708,32 @@ int receive_partial_ucontact_insert(void) {
 
 	if (insert_local_ring(&attr, expires, &value) < 0)
 		return -1;
+
+	return 0;
+
+}
+
+int receive_bulk_insert(void) {
+	str attr, value;
+	int expires, nr_records, nr_vals, i, j;
+
+	bin_pop_int(&nr_records);
+
+	LM_DBG("YYY received %d bulk contacts\n", nr_records);
+
+	for (i = 0; i < nr_records; i++) {
+		LM_DBG("YYY poped 1 i\n");
+		bin_pop_str(&attr);
+		bin_pop_int(&nr_vals);
+		for (j = 0; j < nr_vals; j++) {
+			LM_DBG("YYY poped 1 j\n");
+			bin_pop_str(&value);
+			bin_pop_int(&expires);
+			if (insert_local_ring(&attr, expires, &value) < 0)
+				return -1;
+		}
+
+	}
 
 	return 0;
 
@@ -724,5 +771,279 @@ int dht_single_fetch(cachedb_con *con,str* attr, str* res) {
 	return -2;
 }
 
+void cache_clean(unsigned int ticks,void *param) {
+	unsigned int i;
+	struct register_cell *cell, *prev_cell, *aux_cell;
+	struct machines_list *nod, *prev_node, *aux;
 
+	LM_DBG("XXX started cleaning dht local\n");
+
+	for (i = 0; i < RING_TABLE_SIZE; i++) {
+		lock_set_get(ring_table->locks, i);
+		for (prev_cell = NULL, cell = ring_table->buckets[i]; cell;){
+			for (prev_node = NULL, nod = cell->nodes; nod;) {
+				if(nod->expires < time(0) && nod->expires != 0){
+					shm_free(nod->val.s);
+					if(prev_node)
+						prev_node->next = nod->next;
+					else
+						cell->nodes = nod->next;
+					aux = nod;
+					nod = nod->next;
+					shm_free(aux);
+					LM_DBG("XXX cleaned a node\n");
+				} else {
+					prev_node = nod;
+					nod = nod->next;
+				}
+			}
+
+			if (!cell->nodes){
+				shm_free(cell->attr.s);
+				if(prev_cell)
+						prev_cell->next = cell->next;
+					else
+						ring_table->buckets[i] = cell->next;
+				aux_cell = cell;
+				cell = cell->next;
+				shm_free(aux_cell);
+				LM_DBG("XXX cleaned a cell\n");
+				} else {
+					prev_cell = cell;
+					cell = cell->next;
+				}
+		}
+		lock_set_release(ring_table->locks, i);
+	}
+
+	LM_DBG("finished cleaning dht local\n");
+
+	print_register_table();
+}
+
+void decrease_ring(int *nr){
+	if (*nr == 0)
+		*nr = ring_size - 1;
+	else
+		*nr = *nr - 1;
+}
+
+int nsuccesor_ring(int id, int n){
+	int i;
+	for(i = 0; i < n; i++){
+		id = (id + 1) % ring_size;
+		id = ordered_nodes[id]->node_id;
+	}
+	return id;
+}
+
+int calculate_range(int id){
+	int limit = id;
+	decrease_ring(&limit);
+	while (limit != id && ordered_nodes[limit]->node_id == id) {
+		decrease_ring(&limit);
+	}
+
+	if (limit == id) {
+		// TODO maybe better if actualy return id - 1 so the range is all the ring
+		LM_DBG("YYY the only node left in the ring\n");
+		return -1;
+	}
+
+	return (limit + 1)%ring_size;
+}
+
+int nodes_left(void){
+	int nr = 1;
+	int i;
+	//TODO -1 if wraps around, better even direcly use the cluster_list
+	for(i = 1; i < ring_size; i++)
+		if (ordered_nodes[i]->node_id !=  ordered_nodes[i-1]->node_id){
+			nr++;
+		}
+
+	LM_DBG("YYY nodes left %d\n", nr);
+
+	return nr;
+}
+
+static int create_table_aux(int node_aux) {
+	//TODO simplify the function actually only need to add node_aux artificially to the vector
+	clusterer_node_t *value, *my_node;
+	int i;
+
+	cluster_list =  clusterer_api.get_nodes(cluster_id);
+	if (!cluster_list) {
+		LM_ERR("could not get the list of nodes");
+	}
+	
+	/*
+	if(!ring_size){
+		indexed_nodes->size = aproximate_ring(info->value);
+	}*/
+
+	if(!ordered_nodes)
+		ordered_nodes = pkg_malloc(ring_size * sizeof(clusterer_node_t *));
+	memset(ordered_nodes, 0, ring_size * sizeof(clusterer_node_t *));
+
+	value = cluster_list;
+	while (value != NULL) {
+		if (value->node_id >= ring_size) {
+			LM_ERR("node_id: %d from culster %d, cannot be part of a ring of size %d\n",
+					value->node_id,cluster_id , ring_size);
+			return -1;
+		}
+		if (ordered_nodes[value->node_id]) {
+			LM_ERR("node_id: %d from culster %d, is a dublicate \n", value->node_id,cluster_id);
+			return -1;
+		}
+		ordered_nodes[value->node_id] = value;
+		value = value->next;
+	
+}
+	/* get_nodes does not include me, add me separately */
+	if(my_id < 0)
+		my_id = clusterer_api.get_my_id();
+
+	my_node = pkg_malloc(sizeof(clusterer_node_t));
+	my_node->node_id = my_id;
+	ordered_nodes[my_id] = my_node;
+
+	my_node = pkg_malloc(sizeof(clusterer_node_t));
+	my_node->node_id = node_aux;
+	ordered_nodes[node_aux] = my_node;
+	/* after all nodes from the ring that have coresponding machines ids from the clusterer where set
+	   set the empty vector positions with the correspondig nodes
+	*/
+	for (i = 0; i < ring_size; i++)
+		if(ordered_nodes[i])
+			break;
+
+	value = ordered_nodes[i];
+	for(i = ring_size - 1; i  >= 0; i--)
+		if(ordered_nodes[i])
+			value = ordered_nodes[i];
+		else
+			ordered_nodes[i] = value;
+
+	last_updated = time(0);
+	LM_DBG("XXX:remade the table of destinations\n");
+	print_destination_vector();
+	return 0;
+}
+
+void down_event_node(int dest_id) {
+	int i, id, to_replicate = 0;
+
+	LM_DBG("YYY node with id %d is now down\n",dest_id);
+
+	if (my_id < 0){
+		my_id =clusterer_api.get_my_id();
+	}
+
+	create_table_aux(dest_id);
+
+	if(nodes_left() < replication_factor){
+		LM_WARN("YYY not enough nodes to ensure the replication factor anymore\n");
+		return;
+	}
+
+	id = my_id;
+	for(i = 1; i < replication_factor; i++) {
+		id = (id + 1) % ring_size;
+		id = ordered_nodes[id]->node_id;
+		if (id == dest_id){
+			LM_DBG("YYY key we are directly responsible key that were copied at the fallen node"
+					"we need to resend them elsewere\n");
+			to_replicate = 1;
+			break;
+		}
+	}
+
+	if(!to_replicate){
+		id = (dest_id + 1) % ring_size;
+		id = ordered_nodes[id]->node_id;
+		if(id == my_id){
+			LM_DBG("YYY our predecessor is down, we need to make copy of his data\n");
+			to_replicate = 2;
+		}
+	}
+
+
+
+	if (to_replicate == 1) {
+		bulk_send(calculate_range(my_id), my_id, nsuccesor_ring(my_id, replication_factor));
+	} else if (to_replicate == 2) {
+		bulk_send(calculate_range(dest_id), dest_id, nsuccesor_ring(my_id, replication_factor - 1));
+	}
+
+	create_table();
+}
+
+void bulk_send(int start, int end, int dest) {
+	//TODO break the message in BIN_SIZE max len messages
+	int i, nr_vals, hash, nr_records = 0;
+	struct register_cell *cell;
+	struct machines_list *nod;
+	str send_buffer;
+	/*char aux[1000];
+	memset(aux, 0, 1000);
+	str sx;
+	sx.s = aux;
+	sx.len = 1000;*/
+
+	LM_DBG("YYY: sending hashes from %d to %d to node %d\n",start, end, dest);
+	//return;
+
+
+	if (bin_init(&dht_mod_name, BULK_NODES_INSERT, BIN_VERSION) != 0) {
+		LM_ERR("failed to init bin buffer\n");
+		return;
+	}
+
+	bin_get_buffer(&send_buffer);
+
+	//space for replication factor and key
+	bin_push_int(dest);
+	bin_push_int(0);
+
+	//space for the number of records send
+	bin_push_int(200);
+
+	for (i = 0; i < RING_TABLE_SIZE; i++) {
+		lock_set_get(ring_table->locks, i);
+		for (cell = ring_table->buckets[i]; cell;cell=cell->next){
+			hash = core_hash(&cell->attr, 0, 0) % ring_size;
+			LM_DBG("YYY: hash is %d is_betwween: %d\n",hash, is_between(hash, start, end));
+			if (is_between(hash, start, end)  || hash == end) {
+				LM_DBG("YYY its acceped hash %d\n", hash);
+				nr_vals = 0;
+				for (nod = cell->nodes; nod;nod=nod->next) 
+					if(nod->expires > time(0) || nod->expires == 0)
+						nr_vals++;
+				if(nr_vals == 0)
+					continue;
+				nr_records++;
+				bin_push_str(&cell->attr);
+				bin_push_int(nr_vals);
+				for (nod = cell->nodes; nod;nod=nod->next) 
+					if(nod->expires > time(0) || nod->expires == 0) {
+						bin_push_str(&nod->val);
+						bin_push_int(nod->expires);	
+					}
+			}
+		}
+		lock_set_release(ring_table->locks, i);
+	}
+
+	//bin_push_str(&sx);
+
+	*(int *)(send_buffer.s + NR_RECORDS_OFFSET) = nr_records;
+	LM_DBG("YYY: records number %d\n",nr_records);
+	if (nr_records)
+		if (clusterer_api.send_to(cluster_id, dest)) {
+			LM_ERR("YYY: bulk could not be send to machine id:%d\n", dest);
+		}
+
+}
 

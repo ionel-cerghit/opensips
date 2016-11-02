@@ -35,6 +35,7 @@
 
 #define BIN_VERSION 1
 #define INSERT_RING 1
+#define BULK_NODES_INSERT 5
 
 #define RING_TABLE_SIZE 1024
 
