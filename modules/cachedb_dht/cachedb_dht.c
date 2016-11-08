@@ -54,7 +54,12 @@ void cache_clean(unsigned int ticks,void *param);
 static int create_table(void);
 void bulk_send(int start, int end, int dest);
 void down_event_node(int node);
+void up_event_node(int dest_id);
 int receive_bulk_insert(void);
+int init_new_nodes(void);
+int received_delete_key();
+int dht_remove(cachedb_con *con,str* attr);
+int remove_local_ring(str* attr);
 
 str dht_mod_name = str_init("dht_cluster");
 int ring_size = 5;
@@ -69,6 +74,8 @@ struct registers_table *ring_table;
 struct clusterer_binds clusterer_api;
 clusterer_node_t **ordered_nodes;
 clusterer_node_t *cluster_list;
+int *new_nodes;
+static gen_lock_t *global_lock;
 
 #define NR_RECORDS_OFFSET HEADER_SIZE + 3 * LEN_FIELD_SIZE + dht_mod_name.len + CMD_FIELD_SIZE 
 #define REPLICATION_OFFSET HEADER_SIZE + 2 * LEN_FIELD_SIZE + dht_mod_name.len + CMD_FIELD_SIZE 
@@ -183,6 +190,7 @@ static int mod_init(void)
 	cde.cdb_func.destroy = dht_cache_destroy;
 	cde.cdb_func.get = dht_single_fetch;
 	cde.cdb_func.set = dht_insert;
+	cde.cdb_func.remove = dht_remove;
 
 	/*if(cache_clean_period <= 0 )
 	{
@@ -221,6 +229,10 @@ static int mod_init(void)
 		receive_binary_packet, repl_auth_check, &cluster_id, 1) < 0) {
 		LM_ERR("cannot register binary packet callback to clusterer module!\n");
 		return -1;
+	}
+
+	if(!init_new_nodes()){
+		LM_ERR("Failed to init new nodes list\n");
 	}
 
 	return 0;
@@ -373,7 +385,6 @@ int find_local_ring(str *attr, str *val) {
 int insert_local_ring(str *attr, time_t expires, str *val) {
 	unsigned int hash, found = 0;
 	struct register_cell *cell;
-	struct machines_list *nod;
 
 	hash = core_hash(attr, 0, 0);
 	hash = hash % ring_table->size;
@@ -390,20 +401,16 @@ int insert_local_ring(str *attr, time_t expires, str *val) {
 	}
 
 	if (found) {	
-		//check if we have a newer register from same machine and update it
+		//overwrite the last insertion
 		LM_DBG("XXX found key\n");
-		for (nod = cell->nodes; nod; nod=nod->next) {
-			if (str_cmp(nod->val, *val) == 0) {
-				nod->expires = expires;
-				break;
-			}
+		shm_free(cell->nodes->val.s);
+		shm_free(cell->nodes);
+		cell->nodes = NULL;
+
+		if (insert_new_machine_register(expires, val, cell)) {
+			goto err;
 		}
 
-		if (!nod) { // a new val for the key
-			if (insert_new_machine_register(expires, val, cell)) {
-				goto err;
-			}
-		}
 	} else {
 		LM_DBG("XXX NOt found key\n");
 		cell = shm_malloc(sizeof(struct register_cell));
@@ -622,7 +629,7 @@ void receive_binary_packet(enum clusterer_event ev, int packet_type,
 		return;
 	}
 	else if (ev == CLUSTER_NODE_UP) {
-		//up_event_node(dest_id);
+		up_event_node(dest_id);
 		return;
 	}
 	else if (ev == CLUSTER_ROUTE_FAILED) {
@@ -690,6 +697,9 @@ void receive_binary_packet(enum clusterer_event ev, int packet_type,
 	case BULK_NODES_INSERT:
 		rc = receive_bulk_insert();
 		break;
+	case DELETE_RING:
+		rc = received_delete_key();
+		break;
 	default:
 		rc = -1;
 		LM_ERR("invalid usrloc binary packet type: %d\n", packet_type);
@@ -708,6 +718,16 @@ int receive_partial_ucontact_insert(void) {
 
 	if (insert_local_ring(&attr, expires, &value) < 0)
 		return -1;
+
+	return 0;
+
+}
+
+int received_delete_key(void) {
+	str attr;
+	bin_pop_str(&attr);
+
+	remove_local_ring(&attr);
 
 	return 0;
 
@@ -845,22 +865,21 @@ int calculate_range(int id){
 	}
 
 	if (limit == id) {
-		// TODO maybe better if actualy return id - 1 so the range is all the ring
 		LM_DBG("YYY the only node left in the ring\n");
-		return -1;
+		decrease_ring(&id);
+		return id;
 	}
 
 	return (limit + 1)%ring_size;
 }
 
 int nodes_left(void){
-	int nr = 1;
-	int i;
-	//TODO -1 if wraps around, better even direcly use the cluster_list
-	for(i = 1; i < ring_size; i++)
-		if (ordered_nodes[i]->node_id !=  ordered_nodes[i-1]->node_id){
-			nr++;
-		}
+	int nr = 1; //the list doesnt contain me
+	clusterer_node_t *value;
+	value = cluster_list;
+
+	for(value = cluster_list; value; value=value->next)
+		nr++;
 
 	LM_DBG("YYY nodes left %d\n", nr);
 
@@ -986,15 +1005,8 @@ void bulk_send(int start, int end, int dest) {
 	struct register_cell *cell;
 	struct machines_list *nod;
 	str send_buffer;
-	/*char aux[1000];
-	memset(aux, 0, 1000);
-	str sx;
-	sx.s = aux;
-	sx.len = 1000;*/
 
 	LM_DBG("YYY: sending hashes from %d to %d to node %d\n",start, end, dest);
-	//return;
-
 
 	if (bin_init(&dht_mod_name, BULK_NODES_INSERT, BIN_VERSION) != 0) {
 		LM_ERR("failed to init bin buffer\n");
@@ -1036,8 +1048,6 @@ void bulk_send(int start, int end, int dest) {
 		lock_set_release(ring_table->locks, i);
 	}
 
-	//bin_push_str(&sx);
-
 	*(int *)(send_buffer.s + NR_RECORDS_OFFSET) = nr_records;
 	LM_DBG("YYY: records number %d\n",nr_records);
 	if (nr_records)
@@ -1047,3 +1057,177 @@ void bulk_send(int start, int end, int dest) {
 
 }
 
+int init_new_nodes(void){
+	new_nodes = shm_malloc(ring_size * sizeof(int));
+	if(!new_nodes){
+		LM_ERR("no more shared memory\n");
+		return -1;
+	}
+
+	memset(new_nodes, 0 , sizeof(int));
+
+	global_lock = lock_alloc();
+
+	if (global_lock == NULL) {
+		LM_ERR("Failed to allocate lock \n");
+		return -1;
+	}
+
+	if (lock_init(global_lock) == NULL) {
+		LM_ERR("Failed to init lock \n");
+		return -1;
+	}
+
+	return 0;
+}
+
+int npredeccesor_ring (int id, int n){
+	int i, val, start = id;
+	val = ordered_nodes[id]->node_id;
+	decrease_ring(&id);
+	for(i = 0; i < n; i++){
+		while(id != start && val == ordered_nodes[id]->node_id)
+			decrease_ring(&id);
+		val = ordered_nodes[id]->node_id;
+		if(id == start){
+			LM_DBG("exit 1 pred of id %d(%d) = %d\n", start, n, ordered_nodes[(start + 1) % ring_size]->node_id);
+			return ordered_nodes[(start + 1) % ring_size]->node_id;
+		}
+	}
+	LM_DBG("exit 2 pred of id %d(%d) = %d\n", start, n, val);
+	return val;
+}
+
+void delete_hashes(int start, int end){
+	unsigned int i, hash;
+	struct register_cell *cell, *prev_cell, *aux_cell;
+	struct machines_list *nod, *aux;
+
+	LM_DBG("XXX clearing hashes from %d to %d\n", start, end);
+
+	for (i = 0; i < RING_TABLE_SIZE; i++) {
+		lock_set_get(ring_table->locks, i);
+		for (prev_cell = NULL, cell = ring_table->buckets[i]; cell;){
+			hash = core_hash(&cell->attr, 0, 0) % ring_size;
+			if (is_between(hash, start, end)  || hash == end)
+				for (nod = cell->nodes; nod;) {
+						shm_free(nod->val.s);
+						cell->nodes = nod->next;
+						aux = nod;
+						nod = nod->next;
+						shm_free(aux);
+						LM_DBG("XXX cleaned a node\n");
+				}
+
+				shm_free(cell->attr.s);
+				if(prev_cell)
+						prev_cell->next = cell->next;
+					else
+						ring_table->buckets[i] = cell->next;
+				aux_cell = cell;
+				cell = cell->next;
+				shm_free(aux_cell);
+				LM_DBG("XXX cleaned a cell\n");
+
+		}
+		lock_set_release(ring_table->locks, i);
+	}
+
+	LM_DBG("finished cleaning dht local\n");
+
+	print_register_table();
+}
+
+
+void up_event_node(int dest_id) {
+	int i, id, total_nodes;
+
+	LM_DBG("YYY node with id %d is now up\n",dest_id);
+
+	if (my_id < 0){
+		my_id =clusterer_api.get_my_id();
+	}
+
+	create_table();
+
+	total_nodes = nodes_left();
+
+	id = nsuccesor_ring(dest_id, 1);
+
+	//TODO change the lock to atomic operations
+	lock_get(global_lock);
+	new_nodes[dest_id] = 1;
+	lock_release(global_lock);
+
+	if(id == my_id){
+		LM_DBG("YYY the new node is our predecessor, we need to populate his local table\n");
+		bulk_send(calculate_range(npredeccesor_ring(dest_id, replication_factor - 1)), dest_id, dest_id);
+		if(total_nodes > replication_factor)
+			delete_hashes(calculate_range(dest_id), dest_id);
+
+		return;
+	}
+
+	if(total_nodes > replication_factor){
+		for(i = 1; i < replication_factor && id != dest_id; i++) {
+			id = nsuccesor_ring(id, 1);
+			if (id == my_id){
+				id = npredeccesor_ring(my_id, replication_factor);
+				delete_hashes(calculate_range(id), id);
+				return;
+			}
+		}
+	}
+
+}
+
+int remove_local_ring(str* attr) {
+	unsigned int hash;
+	struct register_cell *cell, *prev_cell;
+
+	hash = core_hash(attr, 0, 0);
+	hash = hash % ring_table->size;
+	LM_DBG("HHH hash is: %u\n", hash);
+
+	lock_set_get(ring_table->locks, hash);
+	for (prev_cell = NULL, cell = ring_table->buckets[hash]; cell; prev_cell = cell, cell = cell->next) {
+		if (str_cmp(cell->attr, *attr) == 0){
+			shm_free(cell->nodes->val.s);
+
+			if(prev_cell)
+				prev_cell->next = cell->next;
+			else
+				ring_table->buckets[hash] = cell->next;
+
+			shm_free(cell->attr.s);
+			shm_free(cell);
+			LM_DBG("YYY removed key %.*s\n", attr->len, attr->s);
+			break;
+		}
+	}
+	lock_set_release(ring_table->locks, hash);
+
+	print_register_table();
+
+	return 0;
+}
+
+int dht_remove(cachedb_con *con,str* attr) {
+	if(is_local_record(attr)) {
+		remove_local_ring(attr);
+	}
+	if (bin_init(&dht_mod_name, DELETE_RING, BIN_VERSION) != 0) {
+		LM_ERR("failed to replicate this event\n");
+		return -1;
+	}
+
+	//space for replication factor and key
+	bin_push_int(200);
+	bin_push_int(200);
+
+	bin_push_str(attr);
+
+	send_to_ring(core_hash(attr, 0, 0));
+
+	return 0;
+}
