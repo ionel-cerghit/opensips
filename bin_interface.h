@@ -198,5 +198,8 @@ int bin_reset_back_pointer(bin_packet_t *packet);
 */
 int bin_get_buffer(bin_packet_t *packet, str *buffer);
 
+int bin_remove_bytes_send_buffer(int count);
+int bin_skip_bytes_send_buffer(int count);
+
 #endif /* __BINARY_INTERFACE__ */
 

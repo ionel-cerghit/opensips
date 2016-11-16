@@ -69,7 +69,7 @@ uint64_t last_updated;
 int refresh_interval = 0;
 int cluster_id = 0;
 int repl_auth_check = 0;
-int clean_period = 100;
+int clean_period = 10;
 struct registers_table *ring_table;
 struct clusterer_binds clusterer_api;
 clusterer_node_t **ordered_nodes;
@@ -231,7 +231,7 @@ static int mod_init(void)
 		return -1;
 	}
 
-	if(!init_new_nodes()){
+	if(init_new_nodes() != 0){
 		LM_ERR("Failed to init new nodes list\n");
 	}
 
@@ -426,7 +426,7 @@ int insert_local_ring(str *attr, time_t expires, str *val) {
 		}
 	}
 	lock_set_release(ring_table->locks, hash);
-	print_register_table();
+	//print_register_table();
 
 	return 0;
 
@@ -537,7 +537,7 @@ static int create_table(void) {
 
 	last_updated = time(0);
 	LM_DBG("XXX:remade the table of destinations\n");
-	print_destination_vector();
+	//print_destination_vector();
 	return 0;
 }
 
@@ -740,7 +740,7 @@ int receive_bulk_insert(void) {
 	bin_pop_int(&nr_records);
 
 	LM_DBG("YYY received %d bulk contacts\n", nr_records);
-
+                           
 	for (i = 0; i < nr_records; i++) {
 		LM_DBG("YYY poped 1 i\n");
 		bin_pop_str(&attr);
@@ -766,6 +766,7 @@ int dht_insert(cachedb_con *con,str* attr, str* value, int expires) {
 	}
 
 	//space for replication factor and key
+	//if cu daca e factor de replicare 1
 	bin_push_int(200);
 	bin_push_int(200);
 
@@ -786,7 +787,7 @@ int dht_single_fetch(cachedb_con *con,str* attr, str* res) {
 	if(is_local_record(attr)) {
 		return find_local_ring(attr, res);
 	}
-
+	//pus atribut si de ce nu e
 	LM_WARN("we are not responsible for the record\n");
 	return -2;
 }
@@ -838,7 +839,7 @@ void cache_clean(unsigned int ticks,void *param) {
 
 	LM_DBG("finished cleaning dht local\n");
 
-	print_register_table();
+	//print_register_table();
 }
 
 void decrease_ring(int *nr){
@@ -947,7 +948,7 @@ static int create_table_aux(int node_aux) {
 
 	last_updated = time(0);
 	LM_DBG("XXX:remade the table of destinations\n");
-	print_destination_vector();
+	//print_destination_vector();
 	return 0;
 }
 
@@ -999,9 +1000,54 @@ void down_event_node(int dest_id) {
 	create_table();
 }
 
+int check_aux_space(void) {
+	static char junk[300];
+	str s;
+	s.len = 300;
+	s.s = junk;
+	if (bin_push_str(&s) < 0) {
+		return -1;
+	}
+	bin_remove_bytes_send_buffer(s.len + LEN_FIELD_SIZE);
+
+	return 0;
+}
+
+
+void partial_send(str *send_buffer, int *nr_records, int dest, int last_record_len) {
+	LM_DBG("ZZZ: the bin_buffer is full send everything and continuing\n");
+	if (check_aux_space() < 0) {
+		LM_DBG("ZZZ: removed a record for clusterer: \n");
+		bin_remove_bytes_send_buffer(last_record_len);
+		*nr_records = *nr_records - 1;
+	}
+	*(int *)(send_buffer->s + NR_RECORDS_OFFSET) = *nr_records;
+	LM_DBG("YYY: records number %d\n",*nr_records);
+
+	if (clusterer_api.send_to(cluster_id, dest)) {
+		LM_ERR("YYY: bulk could not be send to machine id:%d\n", dest);
+		return;
+	}
+	*nr_records = 0;
+	if (bin_init(&dht_mod_name, BULK_NODES_INSERT, BIN_VERSION) != 0) {
+		LM_ERR("failed to reinit bin buffer\n");
+		return;
+	}
+	bin_get_buffer(send_buffer);
+
+	//space for replication factor and key
+	bin_push_int(dest);
+	bin_push_int(0);
+
+	//space for the number of records send
+	bin_push_int(200);
+}
+
+
 void bulk_send(int start, int end, int dest) {
-	//TODO break the message in BIN_SIZE max len messages
+	//TODO find a way to remove the send from inside the lock
 	int i, nr_vals, hash, nr_records = 0;
+	int reset_len, last_record_len;
 	struct register_cell *cell;
 	struct machines_list *nod;
 	str send_buffer;
@@ -1022,38 +1068,71 @@ void bulk_send(int start, int end, int dest) {
 	//space for the number of records send
 	bin_push_int(200);
 
-	for (i = 0; i < RING_TABLE_SIZE; i++) {
+	for (i = 0; i < RING_TABLE_SIZE;) {
 		lock_set_get(ring_table->locks, i);
-		for (cell = ring_table->buckets[i]; cell;cell=cell->next){
+		for (cell = ring_table->buckets[i]; cell;cell=cell->next) {
 			hash = core_hash(&cell->attr, 0, 0) % ring_size;
-			LM_DBG("YYY: hash is %d is_betwween: %d\n",hash, is_between(hash, start, end));
 			if (is_between(hash, start, end)  || hash == end) {
 				LM_DBG("YYY its acceped hash %d\n", hash);
-				nr_vals = 0;
+last_send:		nr_vals = 0;
+				reset_len = 0;
+
+				if (bin_push_str(&cell->attr) < 0) {
+					partial_send(&send_buffer, &nr_records, dest, last_record_len);
+					goto last_send;
+				}
+				reset_len += cell->attr.len + LEN_FIELD_SIZE;
+
+				if (bin_push_int(nr_vals) < 0) {
+					bin_remove_bytes_send_buffer(reset_len);
+					partial_send(&send_buffer, &nr_records, dest, last_record_len);
+					goto last_send;
+				}
+				reset_len += LEN_FIELD_SIZE;
 				for (nod = cell->nodes; nod;nod=nod->next) 
-					if(nod->expires > time(0) || nod->expires == 0)
+					if (nod->expires > time(0) || nod->expires == 0) {
+						if(bin_push_str(&nod->val) < 0){
+							bin_remove_bytes_send_buffer(reset_len);
+							partial_send(&send_buffer, &nr_records, dest, last_record_len);
+							goto last_send;
+						}
+						reset_len += nod->val.len + LEN_FIELD_SIZE;
+						if(bin_push_int(nod->expires) < 0){
+							bin_remove_bytes_send_buffer(reset_len);
+							partial_send(&send_buffer, &nr_records, dest, last_record_len);
+							goto last_send;
+						}
+						reset_len += LEN_FIELD_SIZE;
 						nr_vals++;
-				if(nr_vals == 0)
-					continue;
-				nr_records++;
-				bin_push_str(&cell->attr);
-				bin_push_int(nr_vals);
-				for (nod = cell->nodes; nod;nod=nod->next) 
-					if(nod->expires > time(0) || nod->expires == 0) {
-						bin_push_str(&nod->val);
-						bin_push_int(nod->expires);	
 					}
+
+				if (nr_vals) {
+					bin_remove_bytes_send_buffer(reset_len - cell->attr.len - LEN_FIELD_SIZE);
+					bin_push_int(nr_vals);
+					bin_skip_bytes_send_buffer(reset_len - LEN_FIELD_SIZE - cell->attr.len - LEN_FIELD_SIZE);
+					nr_records++;
+					last_record_len = reset_len;
+				} else {	
+					bin_remove_bytes_send_buffer(reset_len);
+				}
 			}
 		}
 		lock_set_release(ring_table->locks, i);
+		i++;
 	}
 
-	*(int *)(send_buffer.s + NR_RECORDS_OFFSET) = nr_records;
-	LM_DBG("YYY: records number %d\n",nr_records);
-	if (nr_records)
+	if (nr_records) {
+		if (check_aux_space() < 0) {
+			LM_DBG("ZZZ removed last record\n");
+			bin_remove_bytes_send_buffer(last_record_len);
+			nr_records--;
+		}
+		*(int *)(send_buffer.s + NR_RECORDS_OFFSET) = nr_records;
+		LM_DBG("YYY: records number %d\n",nr_records);
 		if (clusterer_api.send_to(cluster_id, dest)) {
 			LM_ERR("YYY: bulk could not be send to machine id:%d\n", dest);
 		}
+	}
 
 }
 
@@ -1135,7 +1214,7 @@ void delete_hashes(int start, int end){
 
 	LM_DBG("finished cleaning dht local\n");
 
-	print_register_table();
+	//print_register_table();
 }
 
 
@@ -1199,15 +1278,15 @@ int remove_local_ring(str* attr) {
 			else
 				ring_table->buckets[hash] = cell->next;
 
+			LM_DBG("YYY removed key %.*s\n", attr->len, attr->s);
 			shm_free(cell->attr.s);
 			shm_free(cell);
-			LM_DBG("YYY removed key %.*s\n", attr->len, attr->s);
 			break;
 		}
 	}
 	lock_set_release(ring_table->locks, hash);
 
-	print_register_table();
+	//print_register_table();
 
 	return 0;
 }

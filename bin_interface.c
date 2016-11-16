@@ -168,6 +168,7 @@ int bin_push_int(bin_packet_t *packet, int info)
  *		0: success
  *		< 0: error, no more integers in buffer
  */
+
 int bin_remove_int_buffer_end(bin_packet_t *packet, int count) {
 	if (!packet->buffer.s  || !packet->size || (packet->buffer.len - count * sizeof(int)) < 0){
 		LM_ERR("binary packet underflow\n");
