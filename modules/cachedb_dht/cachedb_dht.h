@@ -31,6 +31,7 @@
 #include "../../cachedb/cachedb_cap.h"
 #include "../../bin_interface.h"
 #include "../clusterer/api.h"
+#include "../../rw_locking.h"
 
 
 #define BIN_VERSION 1
@@ -58,7 +59,7 @@ struct registers_table
 {
    int size;
    struct register_cell **buckets;
-   gen_lock_set_t *locks;
+   rw_lock_t **locks;
 };
 
 typedef struct {

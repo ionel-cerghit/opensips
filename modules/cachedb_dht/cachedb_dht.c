@@ -75,6 +75,7 @@ struct clusterer_binds clusterer_api;
 clusterer_node_t **ordered_nodes;
 clusterer_node_t *cluster_list;
 int *new_nodes;
+unsigned int local_table_size = RING_TABLE_SIZE;
 static gen_lock_t *global_lock;
 
 #define NR_RECORDS_OFFSET HEADER_SIZE + 3 * LEN_FIELD_SIZE + dht_mod_name.len + CMD_FIELD_SIZE 
@@ -233,6 +234,7 @@ static int mod_init(void)
 
 	if(init_new_nodes() != 0){
 		LM_ERR("Failed to init new nodes list\n");
+		return -1;
 	}
 
 	return 0;
@@ -287,7 +289,19 @@ void print_register_table (void) {
 }
 
 int init_register_table(void) {
-	int size = RING_TABLE_SIZE;
+	int n;
+
+	for( n=0 ; n < 8 * sizeof(unsigned int) ; n++) {
+		if (local_table_size==(1<<n))
+			break;
+		if (local_table_size<(1<<n)) {
+			LM_WARN("hash_size is not a power "
+					"of 2 as it should be -> rounding from %d to %d\n",
+					local_table_size, 1<<(n-1));
+			local_table_size = 1<<(n-1);
+		}
+	}
+
 	ring_table = shm_malloc(sizeof(struct registers_table));
 
 	if(!ring_table){
@@ -295,24 +309,38 @@ int init_register_table(void) {
 		return -1;
 	}
 
-	ring_table->size = size;
-	ring_table->buckets = shm_malloc(size * sizeof(struct register_cell *));
+	ring_table->size = local_table_size;
+	ring_table->buckets = shm_malloc(local_table_size * sizeof(struct register_cell *));
 	if (!ring_table->buckets) {
 		LM_ERR("cannot allocate shared memory\n");
 		shm_free(ring_table);
 		return -1;
 	}
 
-	memset(ring_table->buckets, 0 , size * sizeof(struct register_cell *));
+	memset(ring_table->buckets, 0 , local_table_size * sizeof(struct register_cell *));
 
-	if ( ((ring_table->locks = lock_set_alloc(size)) == 0) || !lock_set_init(ring_table->locks)){
-		LM_ERR("cannot allocate locks\n");
-		if (ring_table->locks){
-			lock_set_dealloc(ring_table->locks);
-		}
+	ring_table->locks = shm_malloc(local_table_size * sizeof(rw_lock_t *));
+	if (!ring_table->locks) {
+		LM_ERR("cannot allocate shared memory\n");
 		shm_free(ring_table->buckets);
 		shm_free(ring_table);
 		return -1;
+	}
+
+	for (n = 0; n < local_table_size; n++) {
+		ring_table->locks[n] = lock_init_rw();
+
+		if(!ring_table->locks[n]){
+			LM_ERR("cannot allocate rw_lock\n");
+
+			for(n = n - 1; n >= 0; n--)
+				lock_destroy_rw(ring_table->locks[n]);
+
+			shm_free(ring_table->locks);
+			shm_free(ring_table->buckets);
+			shm_free(ring_table);
+			return -1;
+		}
 	}
 
 	return 0;
@@ -356,7 +384,7 @@ int find_local_ring(str *attr, str *val) {
 	hash = core_hash(attr, 0, 0);
 	hash = hash % ring_table->size;
 
-	lock_set_get(ring_table->locks, hash);
+	lock_start_read(ring_table->locks[hash]);
 	for (cell = ring_table->buckets[hash]; cell; cell = cell->next) {
 		if (str_cmp(cell->attr, *attr) == 0) {
 			found = 1;
@@ -365,16 +393,13 @@ int find_local_ring(str *attr, str *val) {
 					pkg_str_dup(val,&nod->val);
 					break;
 				}
-				else {
-					//TODO delete the thing while were at it
-				}
 			break;
 		}
 	}
 
-	lock_set_release(ring_table->locks, hash);
+	lock_stop_read(ring_table->locks[hash]);
 
-	if(found) {
+	if (found) {
 		return 0;
 	}
 	else {
@@ -392,7 +417,7 @@ int insert_local_ring(str *attr, time_t expires, str *val) {
 
 	expires += time(0);
 
-	lock_set_get(ring_table->locks, hash);
+	lock_start_write(ring_table->locks[hash]);
 	for (cell = ring_table->buckets[hash]; cell; cell = cell->next) {
 		if (str_cmp(cell->attr, *attr) == 0){
 			found = 1;
@@ -425,18 +450,18 @@ int insert_local_ring(str *attr, time_t expires, str *val) {
 			goto err;
 		}
 	}
-	lock_set_release(ring_table->locks, hash);
+	lock_stop_write(ring_table->locks[hash]);
 	//print_register_table();
 
 	return 0;
 
 err:
 	LM_ERR("no more shared memory");
-	lock_set_release(ring_table->locks, hash);
+	lock_stop_write(ring_table->locks[hash]);
 	return -1;
 }
 
-int is_local_record(str *attr){
+int is_local_record(str *attr) {
 	unsigned int hash;
 	int i;
 
@@ -796,14 +821,21 @@ void cache_clean(unsigned int ticks,void *param) {
 	unsigned int i;
 	struct register_cell *cell, *prev_cell, *aux_cell;
 	struct machines_list *nod, *prev_node, *aux;
-
+	int writing, old;
 	LM_DBG("XXX started cleaning dht local\n");
 
 	for (i = 0; i < RING_TABLE_SIZE; i++) {
-		lock_set_get(ring_table->locks, i);
-		for (prev_cell = NULL, cell = ring_table->buckets[i]; cell;){
+		writing = 0;
+		lock_start_read(ring_table->locks[i]);
+again:	prev_cell = NULL;
+		for (cell = ring_table->buckets[i]; cell;){
 			for (prev_node = NULL, nod = cell->nodes; nod;) {
 				if(nod->expires < time(0) && nod->expires != 0){
+					if(!writing){
+						writing = 1;
+						lock_switch_write(ring_table->locks[i], old);
+						goto again;
+					}
 					shm_free(nod->val.s);
 					if(prev_node)
 						prev_node->next = nod->next;
@@ -832,9 +864,14 @@ void cache_clean(unsigned int ticks,void *param) {
 				} else {
 					prev_cell = cell;
 					cell = cell->next;
-				}
+			}
 		}
-		lock_set_release(ring_table->locks, i);
+		if(!writing)
+			lock_stop_read(ring_table->locks[i]);
+		else {
+			lock_switch_read(ring_table->locks[i], old);
+			lock_stop_read(ring_table->locks[i]);
+		}
 	}
 
 	LM_DBG("finished cleaning dht local\n");
@@ -1069,7 +1106,7 @@ void bulk_send(int start, int end, int dest) {
 	bin_push_int(200);
 
 	for (i = 0; i < RING_TABLE_SIZE;) {
-		lock_set_get(ring_table->locks, i);
+		lock_start_read(ring_table->locks[i]);
 		for (cell = ring_table->buckets[i]; cell;cell=cell->next) {
 			hash = core_hash(&cell->attr, 0, 0) % ring_size;
 			if (is_between(hash, start, end)  || hash == end) {
@@ -1117,7 +1154,7 @@ last_send:		nr_vals = 0;
 				}
 			}
 		}
-		lock_set_release(ring_table->locks, i);
+		lock_stop_read(ring_table->locks[i]);
 		i++;
 	}
 
@@ -1177,18 +1214,27 @@ int npredeccesor_ring (int id, int n){
 	return val;
 }
 
-void delete_hashes(int start, int end){
+void delete_hashes(int start, int end) {
 	unsigned int i, hash;
 	struct register_cell *cell, *prev_cell, *aux_cell;
 	struct machines_list *nod, *aux;
+	int writing, old;
 
 	LM_DBG("XXX clearing hashes from %d to %d\n", start, end);
 
 	for (i = 0; i < RING_TABLE_SIZE; i++) {
-		lock_set_get(ring_table->locks, i);
-		for (prev_cell = NULL, cell = ring_table->buckets[i]; cell;){
+		writing = 0;
+		lock_start_read(ring_table->locks[i]);
+restart:
+		prev_cell = NULL;
+		for (cell = ring_table->buckets[i]; cell;){
 			hash = core_hash(&cell->attr, 0, 0) % ring_size;
-			if (is_between(hash, start, end)  || hash == end)
+			if (is_between(hash, start, end)  || hash == end) {
+				if (!writing) {
+					writing = 1;
+					lock_switch_write(ring_table->locks[i], old);
+					goto restart;
+				}
 				for (nod = cell->nodes; nod;) {
 						shm_free(nod->val.s);
 						cell->nodes = nod->next;
@@ -1199,22 +1245,30 @@ void delete_hashes(int start, int end){
 				}
 
 				shm_free(cell->attr.s);
-				if(prev_cell)
-						prev_cell->next = cell->next;
-					else
-						ring_table->buckets[i] = cell->next;
+				if (prev_cell)
+					prev_cell->next = cell->next;
+				else
+					ring_table->buckets[i] = cell->next;
 				aux_cell = cell;
 				cell = cell->next;
 				shm_free(aux_cell);
 				LM_DBG("XXX cleaned a cell\n");
-
+			} else {
+				prev_cell = cell;
+				cell = cell->next;
+			}
 		}
-		lock_set_release(ring_table->locks, i);
+		if(!writing)
+			lock_stop_read(ring_table->locks[i]);
+		else {
+			lock_switch_read(ring_table->locks[i], old);
+			lock_stop_read(ring_table->locks[i]);
+		}
 	}
 
 	LM_DBG("finished cleaning dht local\n");
 
-	//print_register_table();
+	print_register_table();
 }
 
 
@@ -1241,20 +1295,16 @@ void up_event_node(int dest_id) {
 	if(id == my_id){
 		LM_DBG("YYY the new node is our predecessor, we need to populate his local table\n");
 		bulk_send(calculate_range(npredeccesor_ring(dest_id, replication_factor - 1)), dest_id, dest_id);
-		if(total_nodes > replication_factor)
-			delete_hashes(calculate_range(dest_id), dest_id);
-
-		return;
 	}
 
 	if(total_nodes > replication_factor){
-		for(i = 1; i < replication_factor && id != dest_id; i++) {
-			id = nsuccesor_ring(id, 1);
+		for(i = 0; i < replication_factor && id != dest_id; i++) {
 			if (id == my_id){
 				id = npredeccesor_ring(my_id, replication_factor);
 				delete_hashes(calculate_range(id), id);
 				return;
 			}
+			id = nsuccesor_ring(id, 1);
 		}
 	}
 
@@ -1268,7 +1318,7 @@ int remove_local_ring(str* attr) {
 	hash = hash % ring_table->size;
 	LM_DBG("HHH hash is: %u\n", hash);
 
-	lock_set_get(ring_table->locks, hash);
+	lock_start_write(ring_table->locks[hash]);
 	for (prev_cell = NULL, cell = ring_table->buckets[hash]; cell; prev_cell = cell, cell = cell->next) {
 		if (str_cmp(cell->attr, *attr) == 0){
 			shm_free(cell->nodes->val.s);
@@ -1284,7 +1334,7 @@ int remove_local_ring(str* attr) {
 			break;
 		}
 	}
-	lock_set_release(ring_table->locks, hash);
+	lock_stop_write(ring_table->locks[hash]);
 
 	//print_register_table();
 
