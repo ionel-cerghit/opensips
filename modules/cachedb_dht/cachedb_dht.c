@@ -60,6 +60,7 @@ int init_new_nodes(void);
 int received_delete_key();
 int dht_remove(cachedb_con *con,str* attr);
 int remove_local_ring(str* attr);
+static int nodes_left(void);
 
 str dht_mod_name = str_init("dht_cluster");
 int ring_size = 5;
@@ -77,10 +78,6 @@ clusterer_node_t *cluster_list;
 int *new_nodes;
 unsigned int local_table_size = RING_TABLE_SIZE;
 static gen_lock_t *global_lock;
-
-#define NR_RECORDS_OFFSET HEADER_SIZE + 3 * LEN_FIELD_SIZE + dht_mod_name.len + CMD_FIELD_SIZE 
-#define REPLICATION_OFFSET HEADER_SIZE + 2 * LEN_FIELD_SIZE + dht_mod_name.len + CMD_FIELD_SIZE 
-#define KEY_OFFSET HEADER_SIZE +  LEN_FIELD_SIZE + dht_mod_name.len + CMD_FIELD_SIZE
 
 static param_export_t params[]={
 	{ "ring_size",   INT_PARAM, &ring_size },
@@ -589,7 +586,7 @@ static int send_to_ring(unsigned int hash)
 	messages = 0;
 	ok = 0;
 
-	*(int *)(send_buffer.s + KEY_OFFSET) = hash % ring_size;
+	bin_push_int(hash % ring_size);
 	while (messages < replication_factor) {
 		if(idx == my_id) {
 			LM_DBG("XXX: im rensposible for this packet :P\n");
@@ -603,7 +600,7 @@ static int send_to_ring(unsigned int hash)
 			break;
 
 		/* set the replication factor field */
-		*(int *)(send_buffer.s + REPLICATION_OFFSET) = messages;
+		bin_push_int(messages);
 		if (clusterer_api.send_to(cluster_id, ordered_nodes[idx]->node_id)) {
 			LM_ERR("XXX:message could not be send to machine id:%d\n", ordered_nodes[idx]->node_id);
 			/* TODO!! retake the list from clusterer, maybe tell him somehow that the send failed
@@ -613,6 +610,8 @@ static int send_to_ring(unsigned int hash)
 			LM_DBG("XXX:send content of hash %d, and replication_factor %d, to node with id %d\n",hash % ring_size, messages , idx);
 			messages++;
 			ok = 1;
+			bin_remove_int_send_buffer(1);
+			bin_push_int(messages);
 		}
 		/* go to the index of the node we are pointing at and look at nexts*/
 		idx = (idx + 1) % ring_size;
@@ -647,7 +646,6 @@ void receive_binary_packet(enum clusterer_event ev, int packet_type,
 {
 	int rc, i;
 	int key, repl_factor, my_dest;
-	str send_buffer;
 
 	if (ev == CLUSTER_NODE_DOWN) {
 		down_event_node(dest_id);
@@ -665,8 +663,8 @@ void receive_binary_packet(enum clusterer_event ev, int packet_type,
 
 	LM_DBG("received a binary packet [%d]!\n", packet_type);
 
-	bin_pop_int(&key);
-	bin_pop_int(&repl_factor);
+	bin_pop_back_int(&repl_factor);
+	bin_pop_back_int(&key);
 
 	LM_DBG("XXX:packet key %d, repl_factor %d!\n", key, repl_factor);
 
@@ -692,8 +690,7 @@ void receive_binary_packet(enum clusterer_event ev, int packet_type,
 		}
 	}
 
-	LM_DBG("XXX: our buffer len %d\n", send_buffer.len);
-
+	/* Needs some revisiong
 	while (my_id != my_dest){
 		if (is_between(my_dest, key, my_id)) {
 			LM_DBG("XXX trying to send the thing???\n");
@@ -711,7 +708,7 @@ void receive_binary_packet(enum clusterer_event ev, int packet_type,
 		}
 		my_dest = (my_dest + 1)% ring_size;
 		my_dest = ordered_nodes[my_dest]->node_id;
-	}	
+	} */
 
 	LM_DBG("XXX: keeping packet with hash %d and replication factor %d", key, repl_factor);
 	
@@ -762,8 +759,7 @@ int receive_bulk_insert(void) {
 	str attr, value;
 	int expires, nr_records, nr_vals, i, j;
 
-	bin_pop_int(&nr_records);
-
+	bin_pop_back_int(&nr_records);
 	LM_DBG("YYY received %d bulk contacts\n", nr_records);
                            
 	for (i = 0; i < nr_records; i++) {
@@ -781,39 +777,47 @@ int receive_bulk_insert(void) {
 	}
 
 	return 0;
-
 }
 
 int dht_insert(cachedb_con *con,str* attr, str* value, int expires) {
-	if (bin_init(&dht_mod_name, INSERT_RING, BIN_VERSION) != 0) {
-		LM_ERR("failed to replicate this event\n");
-		return -1;
+	int local, ret;
+
+	local = is_local_record(attr);
+
+	if (local && (insert_local_ring(attr, expires, value) < 0)){
+		LM_ERR("failed local insert of key %.*s\n", attr->len, attr->s);
+		ret = -1;
 	}
 
-	//space for replication factor and key
-	//if cu daca e factor de replicare 1
-	bin_push_int(200);
-	bin_push_int(200);
-
-	bin_push_str(attr);
-	bin_push_str(value);
-	bin_push_int(expires);
-
-	send_to_ring(core_hash(attr, 0, 0));
-
-	if (is_local_record(attr))
-		if (insert_local_ring(attr, expires, value) < 0)
+	if (nodes_left() > 1 && (replication_factor > 1 || (!local))) {
+		if (bin_init(&dht_mod_name, INSERT_RING, BIN_VERSION) != 0) {
+			LM_ERR("failed to replicate this event\n");
 			return -1;
+		}
 
-	return 0;
+		bin_push_str(attr);
+		bin_push_str(value);
+		bin_push_int(expires);
+
+		ret = send_to_ring(core_hash(attr, 0, 0));
+	}
+
+	return ret;
 }
 
 int dht_single_fetch(cachedb_con *con,str* attr, str* res) {
+	int hash;
+
 	if(is_local_record(attr)) {
 		return find_local_ring(attr, res);
 	}
-	//pus atribut si de ce nu e
-	LM_WARN("we are not responsible for the record\n");
+
+	hash = core_hash(attr, 0, 0);
+	if(!ordered_nodes)
+		create_table();
+
+	LM_INFO("we are not responsible for the key %.*s, with hash: %d, it is found at node id %d\n",
+				attr->len, attr->s, hash, ordered_nodes[hash%ring_size]->node_id);
 	return -2;
 }
 
@@ -874,7 +878,7 @@ again:	prev_cell = NULL;
 		}
 	}
 
-	LM_DBG("finished cleaning dht local\n");
+	LM_DBG("ZZZfinished cleaning dht local\n");
 
 	//print_register_table();
 }
@@ -911,7 +915,7 @@ int calculate_range(int id){
 	return (limit + 1)%ring_size;
 }
 
-int nodes_left(void){
+static int nodes_left(void){
 	int nr = 1; //the list doesnt contain me
 	clusterer_node_t *value;
 	value = cluster_list;
@@ -1051,33 +1055,31 @@ int check_aux_space(void) {
 }
 
 
-void partial_send(str *send_buffer, int *nr_records, int dest, int last_record_len) {
+void partial_send(int dest_id, int *nr_records, int dest, int last_record_len) {
 	LM_DBG("ZZZ: the bin_buffer is full send everything and continuing\n");
 	if (check_aux_space() < 0) {
 		LM_DBG("ZZZ: removed a record for clusterer: \n");
 		bin_remove_bytes_send_buffer(last_record_len);
 		*nr_records = *nr_records - 1;
 	}
-	*(int *)(send_buffer->s + NR_RECORDS_OFFSET) = *nr_records;
+
+	bin_push_int(*nr_records);
+	bin_push_int(dest_id);
+	bin_push_int(0);
+
 	LM_DBG("YYY: records number %d\n",*nr_records);
 
 	if (clusterer_api.send_to(cluster_id, dest)) {
 		LM_ERR("YYY: bulk could not be send to machine id:%d\n", dest);
 		return;
 	}
+
 	*nr_records = 0;
 	if (bin_init(&dht_mod_name, BULK_NODES_INSERT, BIN_VERSION) != 0) {
 		LM_ERR("failed to reinit bin buffer\n");
 		return;
 	}
-	bin_get_buffer(send_buffer);
 
-	//space for replication factor and key
-	bin_push_int(dest);
-	bin_push_int(0);
-
-	//space for the number of records send
-	bin_push_int(200);
 }
 
 
@@ -1098,13 +1100,6 @@ void bulk_send(int start, int end, int dest) {
 
 	bin_get_buffer(&send_buffer);
 
-	//space for replication factor and key
-	bin_push_int(dest);
-	bin_push_int(0);
-
-	//space for the number of records send
-	bin_push_int(200);
-
 	for (i = 0; i < RING_TABLE_SIZE;) {
 		lock_start_read(ring_table->locks[i]);
 		for (cell = ring_table->buckets[i]; cell;cell=cell->next) {
@@ -1115,14 +1110,14 @@ last_send:		nr_vals = 0;
 				reset_len = 0;
 
 				if (bin_push_str(&cell->attr) < 0) {
-					partial_send(&send_buffer, &nr_records, dest, last_record_len);
+					partial_send(dest, &nr_records, dest, last_record_len);
 					goto last_send;
 				}
 				reset_len += cell->attr.len + LEN_FIELD_SIZE;
 
 				if (bin_push_int(nr_vals) < 0) {
 					bin_remove_bytes_send_buffer(reset_len);
-					partial_send(&send_buffer, &nr_records, dest, last_record_len);
+					partial_send(dest, &nr_records, dest, last_record_len);
 					goto last_send;
 				}
 				reset_len += LEN_FIELD_SIZE;
@@ -1130,13 +1125,13 @@ last_send:		nr_vals = 0;
 					if (nod->expires > time(0) || nod->expires == 0) {
 						if(bin_push_str(&nod->val) < 0){
 							bin_remove_bytes_send_buffer(reset_len);
-							partial_send(&send_buffer, &nr_records, dest, last_record_len);
+							partial_send(dest, &nr_records, dest, last_record_len);
 							goto last_send;
 						}
 						reset_len += nod->val.len + LEN_FIELD_SIZE;
 						if(bin_push_int(nod->expires) < 0){
 							bin_remove_bytes_send_buffer(reset_len);
-							partial_send(&send_buffer, &nr_records, dest, last_record_len);
+							partial_send(dest, &nr_records, dest, last_record_len);
 							goto last_send;
 						}
 						reset_len += LEN_FIELD_SIZE;
@@ -1164,7 +1159,9 @@ last_send:		nr_vals = 0;
 			bin_remove_bytes_send_buffer(last_record_len);
 			nr_records--;
 		}
-		*(int *)(send_buffer.s + NR_RECORDS_OFFSET) = nr_records;
+		bin_push_int(nr_records);
+		bin_push_int(dest);
+		bin_push_int(0);
 		LM_DBG("YYY: records number %d\n",nr_records);
 		if (clusterer_api.send_to(cluster_id, dest)) {
 			LM_ERR("YYY: bulk could not be send to machine id:%d\n", dest);
@@ -1292,7 +1289,7 @@ void up_event_node(int dest_id) {
 	new_nodes[dest_id] = 1;
 	lock_release(global_lock);
 
-	if(id == my_id){
+	if (id == my_id) {
 		LM_DBG("YYY the new node is our predecessor, we need to populate his local table\n");
 		bulk_send(calculate_range(npredeccesor_ring(dest_id, replication_factor - 1)), dest_id, dest_id);
 	}
@@ -1342,21 +1339,23 @@ int remove_local_ring(str* attr) {
 }
 
 int dht_remove(cachedb_con *con,str* attr) {
-	if(is_local_record(attr)) {
+	int local, ret;
+
+	local = is_local_record(attr);
+	if(local) {
 		remove_local_ring(attr);
 	}
-	if (bin_init(&dht_mod_name, DELETE_RING, BIN_VERSION) != 0) {
-		LM_ERR("failed to replicate this event\n");
-		return -1;
+
+	if (nodes_left() > 1 && (replication_factor > 1 || (!local))) {
+		if (bin_init(&dht_mod_name, DELETE_RING, BIN_VERSION) != 0) {
+			LM_ERR("failed to replicate this event\n");
+			return -1;
+		}
+
+		bin_push_str(attr);
+
+		ret = send_to_ring(core_hash(attr, 0, 0));
 	}
 
-	//space for replication factor and key
-	bin_push_int(200);
-	bin_push_int(200);
-
-	bin_push_str(attr);
-
-	send_to_ring(core_hash(attr, 0, 0));
-
-	return 0;
+	return ret;
 }
