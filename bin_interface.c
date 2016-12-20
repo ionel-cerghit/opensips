@@ -463,3 +463,28 @@ int bin_reset_back_pointer(bin_packet_t *packet)
 
 	return 0;
 }
+
+
+int bin_remove_bytes_buffer_end(bin_packet_t *packet, int count)
+{
+	if (!packet->buffer.s  || !packet->size || (packet->buffer.len - count) < 0){
+		LM_ERR("binary packet underflow\n");
+		return -1;
+	}
+
+	packet->buffer.len -= count;
+	set_len(packet);
+
+	return 0;
+}
+
+int bin_skip_bytes_buffer_end(bin_packet_t *packet, int count)
+{
+	if (!packet->buffer.s  || !packet->size || (packet->buffer.len + count) > packet->size)
+		return -1;
+
+	packet->buffer.len += count;
+	set_len(packet);
+
+	return 0;
+}

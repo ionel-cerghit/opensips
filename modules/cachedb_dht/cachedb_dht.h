@@ -41,7 +41,6 @@
 
 #define RING_TABLE_SIZE 1024
 
-
 struct machines_list {
    str val;
    time_t expires;
